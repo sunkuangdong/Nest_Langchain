@@ -1,11 +1,19 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { BookModule } from './book/book.module';
 import { AiModule } from './ai/ai.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 
 @Module({
-  imports: [BookModule, AiModule],
+  imports: [
+    ServeStaticModule.forRoot({ rootPath: join(__dirname, '..', 'public') }),
+    ConfigModule.forRoot({ isGlobal: true }),
+    BookModule,
+    AiModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })
