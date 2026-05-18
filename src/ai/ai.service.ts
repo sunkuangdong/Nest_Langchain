@@ -6,6 +6,7 @@ import { AI_CHAIN, AI_MODEL, AI_PROMPT } from './ai.tokens';
 import { tool } from '@langchain/core/tools';
 import {
   AIMessage,
+  AIMessageChunk,
   BaseMessage,
   HumanMessage,
   SystemMessage,
@@ -36,13 +37,36 @@ const database = {
   },
 };
 
+function normalizeUserId(userId: string): string {
+  const trimmed = userId.trim();
+  if (/^\d+$/.test(trimmed) && trimmed.length < 3) {
+    return trimmed.padStart(3, '0');
+  }
+  return trimmed;
+}
+
 const queryUserArgsSchema = z.object({
-  userId: z.string().describe('User ID, e.g. 001, 002, 003'),
+  userId: z.coerce
+    .string()
+    .transform((id) => normalizeUserId(id))
+    .describe('User ID, e.g. 001, 002, 003'),
 });
 
 type QueryUserArgs = {
   userId: string;
 };
+
+function parseQueryUserArgs(rawArgs: unknown): QueryUserArgs {
+  let args = rawArgs;
+  if (typeof args === 'string') {
+    try {
+      args = JSON.parse(args) as unknown;
+    } catch {
+      args = { userId: args };
+    }
+  }
+  return queryUserArgsSchema.parse(args);
+}
 
 const queryUserTool = tool(
   ({ userId }: QueryUserArgs) => {
@@ -103,7 +127,7 @@ export class AiService {
         const toolName = toolCall.name;
 
         if (toolName === 'query_user') {
-          const args = queryUserArgsSchema.parse(toolCall.args);
+          const args = parseQueryUserArgs(toolCall.args);
           const result = await queryUserTool.invoke(args);
 
           messages.push(
@@ -118,10 +142,71 @@ export class AiService {
     }
   }
 
-  async *streamChain(query: string): AsyncGenerator<string> {
-    const stream = await this.chain.stream({ query });
-    for await (const chunk of stream) {
-      yield chunk;
+  async *runChainStream(query: string): AsyncIterable<string> {
+    const messages: BaseMessage[] = [
+      new SystemMessage(
+        'You are a helpful assistant. When needed, call tools (e.g. query_user) to fetch user data, then answer the user.',
+      ),
+      new HumanMessage(query),
+    ];
+
+    while (true) {
+      // One turn: model may reason and optionally request tool calls
+      const stream = await this.modelWithTools.stream(messages);
+
+      let fullAIMessage: AIMessageChunk | null = null;
+      try {
+        for await (const chunk of stream as AsyncIterable<AIMessageChunk>) {
+          // Merge chunks with concat to build the full AIMessageChunk for this turn
+          fullAIMessage = fullAIMessage ? fullAIMessage.concat(chunk) : chunk;
+
+          const hasToolCallChunk =
+            !!fullAIMessage.tool_call_chunks &&
+            fullAIMessage.tool_call_chunks.length > 0;
+
+          // Stream text only until tool-call chunks appear in this turn
+          if (!hasToolCallChunk && chunk.content) {
+            yield chunk.content as string;
+          }
+        }
+      } catch (e) {
+        console.error('for await failed before yielding next chunk');
+        console.error(e);
+        console.error(e instanceof Error ? e.stack : e);
+        throw e;
+      }
+
+      if (!fullAIMessage) {
+        return;
+      }
+
+      messages.push(fullAIMessage);
+
+      const toolCalls = fullAIMessage.tool_calls ?? [];
+
+      // No tool calls: final answer was already streamed above; done
+      if (!toolCalls.length) {
+        return;
+      }
+
+      // Tool calls: run tools, append ToolMessage, then start the next turn
+      for (const toolCall of toolCalls) {
+        const toolCallId = toolCall.id || '';
+        const toolName = toolCall.name;
+
+        if (toolName === 'query_user') {
+          const args = queryUserArgsSchema.parse(toolCall.args);
+          const result = await queryUserTool.invoke(args);
+
+          messages.push(
+            new ToolMessage({
+              tool_call_id: toolCallId,
+              name: toolName,
+              content: result,
+            }),
+          );
+        }
+      }
     }
   }
 }
