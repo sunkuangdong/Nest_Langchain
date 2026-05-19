@@ -32,4 +32,11 @@ export default tseslint.config(
       "prettier/prettier": ["error", { endOfLine: "auto" }],
     },
   },
+  {
+    files: ['**/*.dto.ts'],
+    rules: {
+      // class-validator 装饰器在 strict type-checked 下常被误判为 unsafe call
+      '@typescript-eslint/no-unsafe-call': 'off',
+    },
+  },
 );

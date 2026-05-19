@@ -7,6 +7,7 @@ import { BookModule } from './book/book.module';
 import { AiModule } from './ai/ai.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { join } from 'path';
     }),
     BookModule,
     AiModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
