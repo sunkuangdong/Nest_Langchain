@@ -2,8 +2,14 @@ import { Inject, Injectable } from '@nestjs/common';
 import { ChatOpenAI } from '@langchain/openai';
 import { PromptTemplate } from '@langchain/core/prompts';
 import type { Runnable } from '@langchain/core/runnables';
-import { AI_CHAIN, AI_MODEL, AI_PROMPT } from './ai.tokens';
-import { tool } from '@langchain/core/tools';
+import {
+  AI_CHAIN,
+  AI_MODEL,
+  AI_PROMPT,
+  QUERY_USER_TOOL,
+  SEND_MAIL_TOOL,
+} from './ai.tokens';
+import type { StructuredToolInterface } from '@langchain/core/tools';
 import {
   AIMessage,
   AIMessageChunk,
@@ -13,29 +19,6 @@ import {
   ToolMessage,
 } from '@langchain/core/messages';
 import { z } from 'zod';
-
-const database = {
-  users: {
-    '001': {
-      id: '001',
-      name: 'Alice',
-      email: 'alice@example.com',
-      role: 'admin',
-    },
-    '002': {
-      id: '002',
-      name: 'Bob',
-      email: 'bob@example.com',
-      role: 'user',
-    },
-    '003': {
-      id: '003',
-      name: 'Carol',
-      email: 'carol@example.com',
-      role: 'user',
-    },
-  },
-};
 
 function normalizeUserId(userId: string): string {
   const trimmed = userId.trim();
@@ -68,24 +51,26 @@ function parseQueryUserArgs(rawArgs: unknown): QueryUserArgs {
   return queryUserArgsSchema.parse(args);
 }
 
-const queryUserTool = tool(
-  ({ userId }: QueryUserArgs) => {
-    const user = database.users[userId as keyof typeof database.users];
+const sendMailArgsSchema = z.object({
+  to: z.email(),
+  subject: z.string(),
+  text: z.string().optional(),
+  html: z.string().optional(),
+});
 
-    if (!user) {
-      return `User ID ${userId} does not exist. Available IDs: 001, 002, 003`;
+type SendMailArgs = z.infer<typeof sendMailArgsSchema>;
+
+function parseSendMailArgs(rawArgs: unknown): SendMailArgs {
+  let args = rawArgs;
+  if (typeof args === 'string') {
+    try {
+      args = JSON.parse(args) as unknown;
+    } catch {
+      throw new Error('Invalid send_mail args JSON');
     }
-
-    return `User info:\n- ID: ${user.id}\n- Name: ${user.name}\n- Email: ${user.email}\n- Role: ${user.role}`;
-  },
-
-  {
-    name: 'query_user',
-    description:
-      'Look up a user in the database by ID. Returns name, email, and role.',
-    schema: queryUserArgsSchema,
-  },
-);
+  }
+  return sendMailArgsSchema.parse(args);
+}
 
 @Injectable()
 export class AiService {
@@ -98,14 +83,29 @@ export class AiService {
     private readonly model: ChatOpenAI,
     @Inject(AI_PROMPT)
     private readonly prompt: PromptTemplate<{ query: string }>,
+    @Inject(QUERY_USER_TOOL)
+    private readonly queryUserTool: StructuredToolInterface<
+      typeof queryUserArgsSchema,
+      QueryUserArgs,
+      string
+    >,
+    @Inject(SEND_MAIL_TOOL)
+    private readonly sendMailTool: StructuredToolInterface<
+      typeof sendMailArgsSchema,
+      SendMailArgs,
+      string
+    >,
   ) {
-    this.modelWithTools = this.model.bindTools([queryUserTool]);
+    this.modelWithTools = this.model.bindTools([
+      this.queryUserTool,
+      this.sendMailTool,
+    ]);
   }
 
   async runChain(query: string): Promise<string> {
     const messages: BaseMessage[] = [
       new SystemMessage(
-        'You are a helpful assistant. When needed, call tools (e.g. query_user) to fetch user data, then answer the user.',
+        'You are a helpful assistant. When needed, call tools (e.g. query_user, send_mail) to fetch user data or send email, then answer the user.',
       ),
       new HumanMessage(query),
     ];
@@ -128,7 +128,18 @@ export class AiService {
 
         if (toolName === 'query_user') {
           const args = parseQueryUserArgs(toolCall.args);
-          const result = await queryUserTool.invoke(args);
+          const result = await this.queryUserTool.invoke(args);
+
+          messages.push(
+            new ToolMessage({
+              tool_call_id: toolCallId,
+              name: toolName,
+              content: result,
+            }),
+          );
+        } else if (toolName === 'send_mail') {
+          const args = parseSendMailArgs(toolCall.args);
+          const result = await this.sendMailTool.invoke(args);
 
           messages.push(
             new ToolMessage({
@@ -145,7 +156,7 @@ export class AiService {
   async *runChainStream(query: string): AsyncIterable<string> {
     const messages: BaseMessage[] = [
       new SystemMessage(
-        'You are a helpful assistant. When needed, call tools (e.g. query_user) to fetch user data, then answer the user.',
+        'You are a helpful assistant. When needed, call tools (e.g. query_user, send_mail) to fetch user data or send email, then answer the user.',
       ),
       new HumanMessage(query),
     ];
@@ -195,8 +206,19 @@ export class AiService {
         const toolName = toolCall.name;
 
         if (toolName === 'query_user') {
-          const args = queryUserArgsSchema.parse(toolCall.args);
-          const result = await queryUserTool.invoke(args);
+          const args = parseQueryUserArgs(toolCall.args);
+          const result = await this.queryUserTool.invoke(args);
+
+          messages.push(
+            new ToolMessage({
+              tool_call_id: toolCallId,
+              name: toolName,
+              content: result,
+            }),
+          );
+        } else if (toolName === 'send_mail') {
+          const args = parseSendMailArgs(toolCall.args);
+          const result = await this.sendMailTool.invoke(args);
 
           messages.push(
             new ToolMessage({
