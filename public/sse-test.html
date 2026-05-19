@@ -1,51 +1,88 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SSE Streaming API Test</title>
+    <title>AI Chat (SSE)</title>
     <style>
       * {
         box-sizing: border-box;
       }
 
       body {
-        font-family: system-ui, -apple-system, sans-serif;
-        max-width: 640px;
-        margin: 2rem auto;
-        padding: 0 1rem;
+        font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 1.5rem 1rem 2rem;
+        background: #f3f4f6;
+        color: #111827;
+      }
+
+      h1 {
+        font-size: 1.25rem;
+        margin: 0 0 0.5rem;
+      }
+
+      .hint {
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin-bottom: 1rem;
+        line-height: 1.5;
+      }
+
+      .hint code {
+        background: #e5e7eb;
+        padding: 0.1rem 0.35rem;
+        border-radius: 4px;
+        font-size: 0.8rem;
+      }
+
+      .panel {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 1rem;
       }
 
       label {
         display: block;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.35rem;
+        font-size: 0.875rem;
         font-weight: 500;
       }
 
       input[type='text'] {
         width: 100%;
-        padding: 0.75rem;
-        border: 1px solid #ccc;
-        border-radius: 6px;
+        padding: 0.65rem 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
         font-size: 1rem;
-        margin-bottom: 1rem;
+        margin-bottom: 0.75rem;
+      }
+
+      .row {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
       }
 
       button {
-        padding: 0.6rem 1.2rem;
-        font-size: 1rem;
+        padding: 0.55rem 1rem;
+        font-size: 0.95rem;
         border: none;
-        border-radius: 6px;
+        border-radius: 8px;
         cursor: pointer;
       }
 
       button.primary {
         background: #2563eb;
-        color: white;
+        color: #fff;
       }
 
-      button.primary:hover {
-        background: #1d4ed8;
+      button.secondary {
+        background: #e5e7eb;
+        color: #111827;
       }
 
       button:disabled {
@@ -53,60 +90,124 @@
         cursor: not-allowed;
       }
 
-      .output {
-        margin-top: 1.5rem;
-        padding: 1rem;
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
-        background: #f9fafb;
-        min-height: 120px;
+      .status {
+        font-size: 0.8rem;
+        color: #6b7280;
+        margin-top: 0.5rem;
+      }
+
+      .chat {
+        min-height: 280px;
+        max-height: 50vh;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+
+      .bubble {
+        max-width: 85%;
+        padding: 0.65rem 0.85rem;
+        border-radius: 12px;
+        line-height: 1.55;
         white-space: pre-wrap;
         word-break: break-word;
+        font-size: 0.95rem;
       }
 
-      .output:empty::before {
-        content: 'Response will appear here...';
+      .bubble.user {
+        align-self: flex-end;
+        background: #2563eb;
+        color: #fff;
+        border-bottom-right-radius: 4px;
+      }
+
+      .bubble.assistant {
+        align-self: flex-start;
+        background: #f3f4f6;
+        border: 1px solid #e5e7eb;
+        border-bottom-left-radius: 4px;
+      }
+
+      .bubble.assistant:empty::before {
+        content: 'Waiting for response...';
         color: #9ca3af;
-      }
-
-      .status {
-        margin-top: 0.5rem;
-        font-size: 0.875rem;
-        color: #6b7280;
       }
     </style>
   </head>
   <body>
-    <h1>SSE Streaming API Test</h1>
+    <h1>AI Chat (streaming)</h1>
+    <p class="hint">
+      Do <strong>not</strong> open
+      <code>/ai/chat/stream?query=...</code> in the address bar — that shows raw
+      SSE (<code>id:</code> / <code>data:</code>) and Chinese may look garbled.
+      Use this page instead.
+    </p>
 
-    <label for="apiUrl">API URL</label>
-    <input
-      type="text"
-      id="apiUrl"
-      value="http://localhost:3000"
-      placeholder="http://localhost:3000"
-    />
+    <div class="panel">
+      <label for="apiUrl">API base URL</label>
+      <input
+        type="text"
+        id="apiUrl"
+        value="http://localhost:3000"
+        placeholder="http://localhost:3000"
+      />
 
-    <label for="query">Question</label>
-    <input
-      type="text"
-      id="query"
-      placeholder="e.g. What is LangChain?"
-      value="What is LangChain?"
-    />
+      <label for="query">Your question</label>
+      <input
+        type="text"
+        id="query"
+        placeholder="e.g. User 001 info"
+        value="用户001的信息"
+      />
 
-    <button type="button" id="btn" class="primary">Start Streaming Request</button>
-    <p class="status" id="status"></p>
-    <div class="output" id="output"></div>
+      <div class="row">
+        <button type="button" id="btnStream" class="primary">
+          Stream (SSE)
+        </button>
+        <button type="button" id="btnChat" class="secondary">
+          Full reply (JSON)
+        </button>
+      </div>
+      <p class="status" id="status"></p>
+    </div>
+
+    <div class="panel">
+      <div class="chat" id="chat"></div>
+    </div>
 
     <script>
       const apiUrlInput = document.getElementById('apiUrl');
       const queryInput = document.getElementById('query');
-      const btn = document.getElementById('btn');
-      const output = document.getElementById('output');
+      const btnStream = document.getElementById('btnStream');
+      const btnChat = document.getElementById('btnChat');
+      const chat = document.getElementById('chat');
       const status = document.getElementById('status');
 
-      btn.addEventListener('click', () => {
+      let eventSource = null;
+
+      function setBusy(busy) {
+        btnStream.disabled = busy;
+        btnChat.disabled = busy;
+      }
+
+      function closeStream() {
+        if (eventSource) {
+          eventSource.close();
+          eventSource = null;
+        }
+      }
+
+      function appendBubble(role, text) {
+        const el = document.createElement('div');
+        el.className = `bubble ${role}`;
+        el.textContent = text;
+        chat.appendChild(el);
+        chat.scrollTop = chat.scrollHeight;
+        return el;
+      }
+
+      btnStream.addEventListener('click', () => {
         const baseUrl = apiUrlInput.value.replace(/\/$/, '');
         const q = queryInput.value.trim();
         if (!q) {
@@ -114,29 +215,59 @@
           return;
         }
 
-        const url = `${baseUrl}/ai/chat/stream?query=${encodeURIComponent(q)}`;
-        output.textContent = '';
-        btn.disabled = true;
+        closeStream();
+        chat.innerHTML = '';
+        appendBubble('user', q);
+        const assistantEl = appendBubble('assistant', '');
+        setBusy(true);
         status.textContent = 'Connecting...';
 
-        const eventSource = new EventSource(url);
+        const url = `${baseUrl}/ai/chat/stream?query=${encodeURIComponent(q)}`;
+        eventSource = new EventSource(url);
 
         eventSource.onmessage = ({ data }) => {
-          output.textContent += data;
+          if (data) {
+            assistantEl.textContent += data;
+            chat.scrollTop = chat.scrollHeight;
+          }
           status.textContent = 'Receiving...';
         };
 
         eventSource.onerror = () => {
-          eventSource.close();
-          btn.disabled = false;
-          status.textContent = 'Connection closed';
+          closeStream();
+          setBusy(false);
+          status.textContent = 'Stream ended';
         };
+      });
 
-        eventSource.addEventListener('done', () => {
-          eventSource.close();
-          btn.disabled = false;
-          status.textContent = 'Completed';
-        });
+      btnChat.addEventListener('click', async () => {
+        const baseUrl = apiUrlInput.value.replace(/\/$/, '');
+        const q = queryInput.value.trim();
+        if (!q) {
+          status.textContent = 'Please enter a question';
+          return;
+        }
+
+        closeStream();
+        chat.innerHTML = '';
+        appendBubble('user', q);
+        const assistantEl = appendBubble('assistant', '');
+        setBusy(true);
+        status.textContent = 'Requesting...';
+
+        try {
+          const res = await fetch(
+            `${baseUrl}/ai/chat?query=${encodeURIComponent(q)}`,
+          );
+          const json = await res.json();
+          assistantEl.textContent = json.answer ?? JSON.stringify(json);
+          status.textContent = 'Done';
+        } catch (e) {
+          assistantEl.textContent = `Error: ${e.message}`;
+          status.textContent = 'Failed';
+        } finally {
+          setBusy(false);
+        }
       });
     </script>
   </body>
