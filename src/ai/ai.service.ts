@@ -9,6 +9,8 @@ import {
   QUERY_USER_TOOL,
   SEND_MAIL_TOOL,
   WEB_SEARCH_TOOL,
+  DB_USERS_CRUD_TOOL,
+  CRON_JOB_TOOL,
 } from './ai.tokens';
 import type { StructuredToolInterface } from '@langchain/core/tools';
 import {
@@ -68,6 +70,27 @@ type WebSearchArgs = z.infer<typeof webSearchArgsSchema>;
 
 type SendMailArgs = z.infer<typeof sendMailArgsSchema>;
 
+const dbUsersCrudArgsSchema = z.object({
+  action: z.enum(['create', 'list', 'get', 'update', 'delete']),
+  id: z.number().int().positive().optional(),
+  name: z.string().min(1).max(50).optional(),
+  email: z.string().email().max(50).optional(),
+});
+
+type DbUsersCrudArgs = z.infer<typeof dbUsersCrudArgsSchema>;
+
+function parseDbUsersCrudArgs(rawArgs: unknown): DbUsersCrudArgs {
+  let args = rawArgs;
+  if (typeof args === 'string') {
+    try {
+      args = JSON.parse(args) as unknown;
+    } catch {
+      throw new Error('Invalid db_users_crud args JSON');
+    }
+  }
+  return dbUsersCrudArgsSchema.parse(args);
+}
+
 function parseWebSearchArgs(rawArgs: unknown): WebSearchArgs {
   let args = rawArgs;
   if (typeof args === 'string') {
@@ -80,15 +103,41 @@ function parseWebSearchArgs(rawArgs: unknown): WebSearchArgs {
   return webSearchArgsSchema.parse(args);
 }
 
+const cronJobArgsSchema = z.object({
+  action: z.enum(['list', 'add', 'toggle']),
+  id: z.string().optional(),
+  enabled: z.boolean().optional(),
+  type: z.enum(['cron', 'every', 'at']).optional(),
+  instruction: z.string().optional(),
+  cron: z.string().optional(),
+  everyMs: z.number().int().positive().optional(),
+  at: z.string().optional(),
+});
+
+type CronJobArgs = z.infer<typeof cronJobArgsSchema>;
+
+function parseCronJobArgs(rawArgs: unknown): CronJobArgs {
+  let args = rawArgs;
+  if (typeof args === 'string') {
+    try {
+      args = JSON.parse(args) as unknown;
+    } catch {
+      throw new Error('Invalid cron_job args JSON');
+    }
+  }
+  return cronJobArgsSchema.parse(args);
+}
+
 const AGENT_SYSTEM_PROMPT = `你是具备工具能力的 AI 助手，已通过服务端接入以下工具，禁止声称「无法联网」「无法发邮件」：
+      1. web_search：检索互联网实时信息。用户问最新资讯、新闻、趋势、需查证的事实时，必须先调用。
+      2. send_mail：发送邮件。用户要求发到某邮箱时，整理内容后调用。
+      3. query_user：按用户 ID 查询本地假数据用户（三国人物，ID 如 001）。
+      4. db_users_crud：对 MySQL users 表增删改查（create/list/get/update/delete）。
+      5. cron_job：管理服务端定时任务（list/add/toggle）。用户要定时提醒、周期执行、指定时间执行一次时调用。
 
-1. web_search：检索互联网实时信息。用户问最新资讯、新闻、趋势、需查证的事实时，必须先调用。
-2. send_mail：发送邮件。用户要求发到某邮箱时，整理内容后调用。
-3. query_user：按用户 ID 查询本地用户资料。
-
-规则：
-- 工具返回错误时，向用户如实说明 API/配置原因（如博查配额不足），不要改口说你自己不能搜索。
-- 搜索成功后，基于结果整理回答；用户要求发 HTML 邮件时，用 send_mail 发送。`;
+      规则：
+      - 工具返回错误时，向用户如实说明 API/配置原因（如博查配额不足），不要改口说你自己不能搜索。
+      - 搜索成功后，基于结果整理回答；用户要求发 HTML 邮件时，用 send_mail 发送。`;
 
 function parseSendMailArgs(rawArgs: unknown): SendMailArgs {
   let args = rawArgs;
@@ -131,11 +180,25 @@ export class AiService {
       WebSearchArgs,
       string
     >,
+    @Inject(DB_USERS_CRUD_TOOL)
+    private readonly dbUsersCrudTool: StructuredToolInterface<
+      typeof dbUsersCrudArgsSchema,
+      DbUsersCrudArgs,
+      string
+    >,
+    @Inject(CRON_JOB_TOOL)
+    private readonly cronJobTool: StructuredToolInterface<
+      typeof cronJobArgsSchema,
+      CronJobArgs,
+      string
+    >,
   ) {
     this.modelWithTools = this.model.bindTools([
       this.queryUserTool,
       this.sendMailTool,
       this.webSearchTool,
+      this.dbUsersCrudTool,
+      this.cronJobTool,
     ]);
   }
 
@@ -186,6 +249,30 @@ export class AiService {
         } else if (toolName === 'web_search') {
           const args = parseWebSearchArgs(toolCall.args);
           const result = await this.webSearchTool.invoke(args);
+
+          messages.push(
+            new ToolMessage({
+              tool_call_id: toolCallId,
+              name: toolName,
+              content: result,
+            }),
+          );
+        } else if (toolName === 'db_users_crud') {
+          const args = parseDbUsersCrudArgs(toolCall.args);
+          const result = await this.dbUsersCrudTool.invoke(args);
+
+          messages.push(
+            new ToolMessage({
+              tool_call_id: toolCallId,
+              name: toolName,
+              content: result,
+            }),
+          );
+        } else if (toolName === 'cron_job') {
+          const args = parseCronJobArgs(toolCall.args);
+          console.log('[cron_job] args:', args);
+          const result = await this.cronJobTool.invoke(args);
+          console.log('[cron_job] result:', result);
 
           messages.push(
             new ToolMessage({
@@ -274,6 +361,28 @@ export class AiService {
         } else if (toolName === 'web_search') {
           const args = parseWebSearchArgs(toolCall.args);
           const result = await this.webSearchTool.invoke(args);
+
+          messages.push(
+            new ToolMessage({
+              tool_call_id: toolCallId,
+              name: toolName,
+              content: result,
+            }),
+          );
+        } else if (toolName === 'db_users_crud') {
+          const args = parseDbUsersCrudArgs(toolCall.args);
+          const result = await this.dbUsersCrudTool.invoke(args);
+
+          messages.push(
+            new ToolMessage({
+              tool_call_id: toolCallId,
+              name: toolName,
+              content: result,
+            }),
+          );
+        } else if (toolName === 'cron_job') {
+          const args = parseCronJobArgs(toolCall.args);
+          const result = await this.cronJobTool.invoke(args);
 
           messages.push(
             new ToolMessage({

@@ -6,10 +6,17 @@ import { AppService } from './app.service';
 import { BookModule } from './book/book.module';
 import { AiModule } from './ai/ai.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
+import { Job } from './job/entities/job.entity';
 import { join } from 'path';
+import { UsersModule } from './users/users.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { JobModule } from './job/job.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { User } from './users/entities/user.entity';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     ServeStaticModule.forRoot({ rootPath: join(__dirname, '..', 'public') }),
     ConfigModule.forRoot({ isGlobal: true }),
     MailerModule.forRootAsync({
@@ -29,8 +36,21 @@ import { join } from 'path';
         },
       }),
     }),
+    TypeOrmModule.forRoot({
+      type: 'mysql',
+      host: 'localhost',
+      port: 3306,
+      username: 'root',
+      password: '',
+      database: 'hello',
+      entities: [User, Job],
+      synchronize: true,
+      logging: true,
+    }),
     BookModule,
     AiModule,
+    UsersModule,
+    JobModule,
   ],
   controllers: [AppController],
   providers: [AppService],
