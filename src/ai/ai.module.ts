@@ -9,7 +9,6 @@ import { z } from 'zod';
 import { AiController } from './ai.controller';
 import { AiService } from './ai.service';
 import { UserService } from './user.service';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from 'src/users/entities/user.entity';
 import {
   AI_CHAIN,
@@ -19,9 +18,13 @@ import {
   SEND_MAIL_TOOL,
   WEB_SEARCH_TOOL,
   DB_USERS_CRUD_TOOL,
+  CRON_JOB_TOOL,
 } from './ai.tokens';
 import { UsersModule } from 'src/users/users.module';
 import { UsersService } from '../users/users.service';
+import { JobModule } from 'src/job/job.module';
+import { JobService } from '../job/job.service';
+import { Job } from '../job/entities/job.entity';
 
 interface BochaWebPage {
   name?: string;
@@ -47,21 +50,7 @@ interface BochaSearchResponse {
 }
 
 @Module({
-  imports: [
-    MailerModule,
-    TypeOrmModule.forRoot({
-      type: 'mysql',
-      host: 'localhost',
-      port: 3306,
-      username: 'root',
-      password: '',
-      database: 'hello',
-      synchronize: true,
-      logging: true,
-      entities: [User],
-    }),
-    UsersModule,
-  ],
+  imports: [MailerModule, UsersModule, JobModule],
   controllers: [AiController],
   providers: [
     {
@@ -385,6 +374,154 @@ interface BochaSearchResponse {
             description:
               '对数据库 users 表执行增删改查操作。通过 action 字段选择 create/list/get/update/delete，并按需提供 id、name、email 等参数。',
             schema: dbUsersCrudArgsSchema,
+          },
+        );
+      },
+    },
+    {
+      provide: CRON_JOB_TOOL,
+      inject: [JobService],
+      useFactory: (jobService: JobService) => {
+        const formatAt = (value: Date | string | null | undefined) => {
+          if (value instanceof Date) return value.toISOString();
+          return value ?? '';
+        };
+
+        const formatJobLine = (j: Job & { running: boolean }) =>
+          `id=${j.id} type=${j.type} enabled=${j.isEnabled} running=${j.running} cron=${j.cron ?? ''} everyMs=${j.everyMs ?? ''} at=${formatAt(j.at)} instruction=${j.instruction ?? ''}`;
+
+        const cronJobArgsSchema = z.object({
+          action: z
+            .enum(['list', 'add', 'toggle'])
+            .describe('Operation: list, add, or toggle'),
+          id: z.string().optional().describe('Job ID (required for toggle)'),
+          enabled: z
+            .boolean()
+            .optional()
+            .describe(
+              'Enable flag for toggle (optional; toggles when omitted)',
+            ),
+          type: z
+            .enum(['cron', 'every', 'at'])
+            .optional()
+            .describe(
+              'Job type for add: cron (cron expression loop), every (interval ms loop), at (one-shot at ISO time, auto-disable after run)',
+            ),
+          instruction: z
+            .string()
+            .optional()
+            .describe(
+              'Task instruction for add. Strip scheduling phrases from user text; keep natural-language task content only; do not use tool calls or code.',
+            ),
+          cron: z
+            .string()
+            .optional()
+            .describe('Cron expression when type=cron (e.g. */5 * * * * *)'),
+          everyMs: z
+            .number()
+            .int()
+            .positive()
+            .optional()
+            .describe('Interval in ms when type=every (e.g. 60000)'),
+          at: z
+            .string()
+            .optional()
+            .describe(
+              'ISO datetime when type=at (e.g. 2026-03-18T12:34:56.000Z)',
+            ),
+        });
+
+        return tool(
+          async ({
+            action,
+            id,
+            enabled,
+            type,
+            instruction,
+            cron,
+            everyMs,
+            at,
+          }: {
+            action: 'list' | 'add' | 'toggle';
+            id?: string;
+            enabled?: boolean;
+            type?: 'cron' | 'every' | 'at';
+            instruction?: string;
+            cron?: string;
+            everyMs?: number;
+            at?: string;
+          }) => {
+            switch (action) {
+              case 'list': {
+                const jobs = await jobService.listJobs();
+                if (!jobs.length) return 'No scheduled jobs found.';
+                const lines = jobs.map((j) => formatJobLine(j)).join('\n');
+                return `Scheduled jobs (cron=expression loop; every=interval loop; at=one-shot then disable):\n${lines}`;
+              }
+              case 'add': {
+                if (!type) return 'add requires type (cron/every/at).';
+                if (!instruction) return 'add requires instruction.';
+
+                if (type === 'cron') {
+                  if (!cron) return 'type=cron requires cron.';
+                  const created = await jobService.addJob({
+                    type,
+                    instruction,
+                    cron,
+                    isEnabled: true,
+                  });
+                  return `Job created: id=${created.id} type=cron cron=${created.cron} enabled=${created.isEnabled}`;
+                }
+
+                if (type === 'every') {
+                  if (typeof everyMs !== 'number' || everyMs <= 0) {
+                    return 'type=every requires everyMs (positive integer, ms).';
+                  }
+                  const created = await jobService.addJob({
+                    type,
+                    instruction,
+                    everyMs,
+                    isEnabled: true,
+                  });
+                  return `Job created: id=${created.id} type=every everyMs=${created.everyMs} enabled=${created.isEnabled}`;
+                }
+
+                if (type === 'at') {
+                  if (!at) return 'type=at requires at (ISO datetime string).';
+                  const date = new Date(at);
+                  if (Number.isNaN(date.getTime())) {
+                    return 'type=at: at is not a valid ISO datetime string.';
+                  }
+                  const created = await jobService.addJob({
+                    type,
+                    instruction,
+                    at: date,
+                    isEnabled: true,
+                  });
+                  const atIso =
+                    created.at instanceof Date ? created.at.toISOString() : '';
+                  return `Job created: id=${created.id} type=at at=${atIso} enabled=${created.isEnabled}`;
+                }
+
+                return `Unsupported job type: ${String(type)}`;
+              }
+              case 'toggle': {
+                if (!id) return 'toggle requires id.';
+                const updated = await jobService.toggleJob(id, enabled);
+                return `Job updated: id=${updated.id} enabled=${updated.isEnabled}`;
+              }
+              default:
+                return `Unsupported action: ${String(action)}`;
+            }
+          },
+          {
+            name: 'cron_job',
+            description:
+              'Manage server-side scheduled jobs (list/add/toggle).\n' +
+              '- type=at: run once at ISO time, then auto-disable.\n' +
+              '- type=every: repeat every N milliseconds.\n' +
+              '- type=cron: repeat on a cron expression.\n',
+            schema: cronJobArgsSchema,
           },
         );
       },
