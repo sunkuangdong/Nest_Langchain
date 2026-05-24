@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { BookModule } from './book/book.module';
 import { AiModule } from './ai/ai.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
@@ -17,7 +16,7 @@ import { User } from './users/entities/user.entity';
 @Module({
   imports: [
     ScheduleModule.forRoot(),
-    ServeStaticModule.forRoot({ rootPath: join(__dirname, '..', 'public') }),
+    ServeStaticModule.forRoot({ rootPath: join(__dirname, 'public') }),
     ConfigModule.forRoot({ isGlobal: true }),
     MailerModule.forRootAsync({
       inject: [ConfigService],
@@ -53,6 +52,5 @@ import { User } from './users/entities/user.entity';
     JobModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
 })
 export class AppModule {}
