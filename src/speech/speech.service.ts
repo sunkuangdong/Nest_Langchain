@@ -1,6 +1,5 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-
 type UploadedAudio = {
   buffer: Buffer;
   originalname: string;
