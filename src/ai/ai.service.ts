@@ -137,7 +137,15 @@ const AGENT_SYSTEM_PROMPT = `你是具备工具能力的 AI 助手，已通过�
 
       规则：
       - 工具返回错误时，向用户如实说明 API/配置原因（如博查配额不足），不要改口说你自己不能搜索。
-      - 搜索成功后，基于结果整理回答；用户要求发 HTML 邮件时，用 send_mail 发送。`;
+      - 搜索成功后，基于结果整理回答；用户要求发 HTML 邮件时，用 send_mail 发送。
+      - 多轮对话时务必结合上文：记住用户已提供的姓名、纠正与偏好；不要把用户自我介绍当成要检索的第三方；不要每轮都重新寒暄。`;
+
+export type ChatHistoryItem = {
+  role: 'user' | 'assistant';
+  content: string;
+};
+
+const MAX_CHAT_HISTORY = 20;
 
 function parseSendMailArgs(rawArgs: unknown): SendMailArgs {
   let args = rawArgs;
@@ -202,11 +210,30 @@ export class AiService {
     ]);
   }
 
-  async runChain(query: string): Promise<string> {
-    const messages: BaseMessage[] = [
-      new SystemMessage(AGENT_SYSTEM_PROMPT),
-      new HumanMessage(query),
-    ];
+  private buildAgentMessages(
+    query: string,
+    history: ChatHistoryItem[] = [],
+  ): BaseMessage[] {
+    const messages: BaseMessage[] = [new SystemMessage(AGENT_SYSTEM_PROMPT)];
+    const recent = history.slice(-MAX_CHAT_HISTORY);
+
+    for (const item of recent) {
+      if (item.role === 'user') {
+        messages.push(new HumanMessage(item.content));
+      } else {
+        messages.push(new AIMessage(item.content));
+      }
+    }
+
+    messages.push(new HumanMessage(query));
+    return messages;
+  }
+
+  async runChain(
+    query: string,
+    history: ChatHistoryItem[] = [],
+  ): Promise<string> {
+    const messages = this.buildAgentMessages(query, history);
 
     while (true) {
       const aiMessage = await this.modelWithTools.invoke(messages);
@@ -286,11 +313,11 @@ export class AiService {
     }
   }
 
-  async *runChainStream(query: string): AsyncIterable<string> {
-    const messages: BaseMessage[] = [
-      new SystemMessage(AGENT_SYSTEM_PROMPT),
-      new HumanMessage(query),
-    ];
+  async *runChainStream(
+    query: string,
+    history: ChatHistoryItem[] = [],
+  ): AsyncIterable<string> {
+    const messages = this.buildAgentMessages(query, history);
 
     while (true) {
       // One turn: model may reason and optionally request tool calls
