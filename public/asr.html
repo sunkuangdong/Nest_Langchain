@@ -237,7 +237,7 @@
           <button class="btn btn-primary" id="sendBtn" type="button">发送</button>
         </div>
         <div class="hint">
-          多轮记忆已开启（同页对话会带上文）。语音：/speech/asr → /ai/chat/stream
+          多轮记忆已开启。TTS 通道：WebSocket /speech/tts/ws（第 1～2 步：仅建立连接）
         </div>
       </footer>
     </section>
@@ -265,6 +265,10 @@
     let stoppedByMaxDuration = false;
 
     const MAX_RECORD_MS = 2 * 60 * 1000;
+
+    let ttsWs = null;
+    let ttsSessionId = null;
+    let ttsConnectPromise = null;
 
     function setStatus(text, isTyping = false) {
       statusEl.textContent = "状态：" + text;
@@ -314,6 +318,59 @@
         activeFetchAbort.abort();
         activeFetchAbort = null;
       }
+    }
+
+    function ensureTtsConnection() {
+      if (ttsWs && ttsWs.readyState === WebSocket.OPEN && ttsSessionId) {
+        return Promise.resolve(ttsSessionId);
+      }
+
+      if (ttsConnectPromise) {
+        return ttsConnectPromise;
+      }
+
+      ttsConnectPromise = new Promise((resolve, reject) => {
+        const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+        const wsUrl = protocol + "://" + window.location.host + "/speech/tts/ws";
+        const ws = new WebSocket(wsUrl);
+        ws.binaryType = "arraybuffer";
+        ttsWs = ws;
+
+        const timeoutId = setTimeout(() => {
+          ws.close();
+          reject(new Error("TTS WebSocket 连接超时"));
+        }, 10000);
+
+        ws.onmessage = (event) => {
+          if (typeof event.data !== "string") {
+            return;
+          }
+          try {
+            const msg = JSON.parse(event.data);
+            if (msg.type === "session" && msg.sessionId) {
+              clearTimeout(timeoutId);
+              ttsSessionId = msg.sessionId;
+              resolve(ttsSessionId);
+            }
+          } catch {
+            // ignore non-json
+          }
+        };
+
+        ws.onerror = () => {
+          clearTimeout(timeoutId);
+          reject(new Error("TTS WebSocket 连接失败"));
+        };
+
+        ws.onclose = () => {
+          ttsWs = null;
+          ttsSessionId = null;
+        };
+      }).finally(() => {
+        ttsConnectPromise = null;
+      });
+
+      return ttsConnectPromise;
     }
 
     function consumeSseBuffer(buffer) {
@@ -607,6 +664,14 @@
         setComposerBusy(false);
       }
     });
+
+    ensureTtsConnection()
+      .then((id) => {
+        setStatus("TTS 已连接");
+      })
+      .catch((error) => {
+        setStatus("TTS 未连接：" + (error.message || String(error)));
+      });
   </script>
 </body>
 </html>

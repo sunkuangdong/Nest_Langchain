@@ -47,4 +47,9 @@ export default tseslint.config(
       globals: globals.node,
     },
   },
+  {
+    // @nestjs/event-emitter resolves at build time; ESLint projectService may not load its types
+    files: ['src/common/app-event-emitter.module.ts'],
+    extends: [tseslint.configs.disableTypeChecked],
+  },
 );

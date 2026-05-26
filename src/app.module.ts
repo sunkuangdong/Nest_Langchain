@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MailerModule } from '@nestjs-modules/mailer';
+import { AppEventEmitterModule } from './common/app-event-emitter.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { BookModule } from './book/book.module';
@@ -16,6 +17,7 @@ import { SpeechModule } from './speech/speech.module';
 
 @Module({
   imports: [
+    AppEventEmitterModule,
     ScheduleModule.forRoot(),
     ServeStaticModule.forRoot({ rootPath: join(__dirname, 'public') }),
     ConfigModule.forRoot({ isGlobal: true }),
