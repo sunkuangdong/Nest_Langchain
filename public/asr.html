@@ -235,9 +235,11 @@
           </div>
           <button class="btn btn-voice" id="recordBtn" type="button">语音输入</button>
           <button class="btn btn-primary" id="sendBtn" type="button">发送</button>
+          <button class="btn" id="ttsTestBtn" type="button">测试 TTS</button>
         </div>
         <div class="hint">
-          多轮记忆已开启。TTS 通道：WebSocket /speech/tts/ws（第 1～2 步：仅建立连接）
+          多轮记忆已开启。TTS：OpenAI 流式 MP3 → WS。点「测试 TTS」或 GET
+          /speech/tts/test?text=你好&amp;sessionId=…
         </div>
       </footer>
     </section>
@@ -247,6 +249,7 @@
     const promptInput = document.getElementById("promptInput");
     const sendBtn = document.getElementById("sendBtn");
     const recordBtn = document.getElementById("recordBtn");
+    const ttsTestBtn = document.getElementById("ttsTestBtn");
     const statusEl = document.getElementById("status");
     const messagesEl = document.getElementById("messages");
     const emptyTipEl = document.getElementById("emptyTip");
@@ -269,6 +272,8 @@
     let ttsWs = null;
     let ttsSessionId = null;
     let ttsConnectPromise = null;
+    let ttsAudioChunks = [];
+    let ttsPlaybackAudio = null;
 
     function setStatus(text, isTyping = false) {
       statusEl.textContent = "状态：" + text;
@@ -320,6 +325,61 @@
       }
     }
 
+    function resetTtsPlayback() {
+      ttsAudioChunks = [];
+      if (ttsPlaybackAudio) {
+        ttsPlaybackAudio.pause();
+        ttsPlaybackAudio = null;
+      }
+    }
+
+    function playTtsChunks() {
+      if (!ttsAudioChunks.length) return;
+      const blob = new Blob(ttsAudioChunks, { type: "audio/mpeg" });
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      ttsPlaybackAudio = audio;
+      audio.onended = () => URL.revokeObjectURL(url);
+      audio.play().catch(() => {
+        setStatus("自动播放被阻止，请手动允许音频播放");
+      });
+    }
+
+    function handleTtsWsMessage(event) {
+      if (event.data instanceof ArrayBuffer) {
+        ttsAudioChunks.push(event.data);
+        return;
+      }
+      if (typeof event.data !== "string") return;
+
+      try {
+        const msg = JSON.parse(event.data);
+        if (msg.type === "session" && msg.sessionId) {
+          ttsSessionId = msg.sessionId;
+          return;
+        }
+        if (msg.type === "tts_started") {
+          resetTtsPlayback();
+          setStatus("TTS 合成中…");
+          return;
+        }
+        if (msg.type === "tts_final") {
+          playTtsChunks();
+          setStatus("TTS 播放完成");
+          return;
+        }
+        if (msg.type === "tts_error") {
+          setStatus("TTS 错误：" + (msg.message || "未知"));
+          return;
+        }
+        if (msg.type === "tts_closed") {
+          setStatus("TTS 连接已关闭");
+        }
+      } catch {
+        // ignore
+      }
+    }
+
     function ensureTtsConnection() {
       if (ttsWs && ttsWs.readyState === WebSocket.OPEN && ttsSessionId) {
         return Promise.resolve(ttsSessionId);
@@ -342,18 +402,10 @@
         }, 10000);
 
         ws.onmessage = (event) => {
-          if (typeof event.data !== "string") {
-            return;
-          }
-          try {
-            const msg = JSON.parse(event.data);
-            if (msg.type === "session" && msg.sessionId) {
-              clearTimeout(timeoutId);
-              ttsSessionId = msg.sessionId;
-              resolve(ttsSessionId);
-            }
-          } catch {
-            // ignore non-json
+          handleTtsWsMessage(event);
+          if (ttsSessionId) {
+            clearTimeout(timeoutId);
+            resolve(ttsSessionId);
           }
         };
 
@@ -665,9 +717,41 @@
       }
     });
 
+    async function runTtsTest() {
+      const id = await ensureTtsConnection();
+      const text =
+        promptInput.value.trim() || "你好，这是 OpenAI 语音合成测试。";
+      setStatus("TTS 测试中…");
+      const response = await fetch(
+        "/speech/tts/test?text=" +
+          encodeURIComponent(text) +
+          "&sessionId=" +
+          encodeURIComponent(id),
+      );
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(errText || "TTS 测试失败");
+      }
+      const data = await response.json();
+      setStatus("TTS 已推送 " + (data.bytes || 0) + " 字节");
+    }
+
+    ttsTestBtn.addEventListener("click", async () => {
+      try {
+        await runTtsTest();
+      } catch (error) {
+        setStatus("TTS 测试失败");
+        appendMessage(
+          "assistant",
+          "TTS 测试：" + (error.message || String(error)),
+          "异常 " + nowTime(),
+        );
+      }
+    });
+
     ensureTtsConnection()
       .then((id) => {
-        setStatus("TTS 已连接");
+        setStatus("TTS 已连接 " + id.slice(0, 8) + "…");
       })
       .catch((error) => {
         setStatus("TTS 未连接：" + (error.message || String(error)));
