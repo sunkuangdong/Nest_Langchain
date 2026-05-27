@@ -39,4 +39,17 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-call': 'off',
     },
   },
+  {
+    files: ['src/**/*.mjs'],
+    extends: [tseslint.configs.disableTypeChecked],
+    languageOptions: {
+      sourceType: 'module',
+      globals: globals.node,
+    },
+  },
+  {
+    // @nestjs/event-emitter resolves at build time; ESLint projectService may not load its types
+    files: ['src/common/app-event-emitter.module.ts'],
+    extends: [tseslint.configs.disableTypeChecked],
+  },
 );

@@ -1,8 +1,47 @@
-import { Controller, Get, MessageEvent, Query, Sse } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  MessageEvent,
+  Post,
+  Query,
+  Sse,
+} from '@nestjs/common';
 import { Observable, from } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { AiService } from './ai.service';
+import { AiService, type ChatHistoryItem } from './ai.service';
 import { JobAgentService } from './job-agent.service';
+
+type ChatStreamBody = {
+  query: string;
+  history?: ChatHistoryItem[];
+};
+
+function isChatHistoryItem(item: unknown): item is ChatHistoryItem {
+  if (!item || typeof item !== 'object') {
+    return false;
+  }
+  const record = item as Record<string, unknown>;
+  return (
+    (record.role === 'user' || record.role === 'assistant') &&
+    typeof record.content === 'string'
+  );
+}
+
+function parseHistoryJson(raw?: string): ChatHistoryItem[] {
+  if (!raw) {
+    return [];
+  }
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    return parsed.filter(isChatHistoryItem);
+  } catch {
+    return [];
+  }
+}
 
 @Controller('ai')
 export class AiController {
@@ -12,8 +51,12 @@ export class AiController {
   ) {}
 
   @Get('chat')
-  async chat(@Query('query') query: string) {
-    const answer = await this.aiService.runChain(query);
+  async chat(
+    @Query('query') query: string,
+    @Query('history') historyJson?: string,
+  ) {
+    const history = parseHistoryJson(historyJson);
+    const answer = await this.aiService.runChain(query, history);
     return { answer };
   }
 
@@ -25,8 +68,25 @@ export class AiController {
   }
 
   @Sse('chat/stream')
-  chatStream(@Query('query') query: string): Observable<MessageEvent> {
-    const stream = this.aiService.runChainStream(query);
+  chatStream(
+    @Query('query') query: string,
+    @Query('history') historyJson?: string,
+  ): Observable<MessageEvent> {
+    const history = parseHistoryJson(historyJson);
+    const stream = this.aiService.runChainStream(query, history);
+
+    return from(stream).pipe(
+      map((chunk) => ({
+        data: chunk,
+      })),
+    );
+  }
+
+  @Post('chat/stream')
+  @Sse()
+  chatStreamPost(@Body() body: ChatStreamBody): Observable<MessageEvent> {
+    const history = Array.isArray(body.history) ? body.history : [];
+    const stream = this.aiService.runChainStream(body.query ?? '', history);
 
     return from(stream).pipe(
       map((chunk) => ({

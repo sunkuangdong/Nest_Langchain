@@ -1,0 +1,761 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI 助手</title>
+  <style>
+    :root {
+      --bg: #f3f4f7;
+      --card: #ffffff;
+      --text: #1f2329;
+      --muted: #6b7280;
+      --primary: #3b82f6;
+      --primary-soft: #e8f1ff;
+      --assistant: #f8fafc;
+      --border: #e5e7eb;
+      --shadow: 0 14px 40px rgba(15, 23, 42, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+        "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      background: radial-gradient(circle at top, #ffffff 0%, var(--bg) 45%);
+    }
+
+    .page {
+      max-width: 920px;
+      margin: 28px auto;
+      padding: 0 14px;
+    }
+
+    .chat-shell {
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      background: var(--card);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .header {
+      padding: 18px 20px 14px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, #ffffff 0%, #fafbfd 100%);
+    }
+
+    .title {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .subtitle {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      margin-top: 10px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: #f5f7fb;
+      color: #4b5563;
+      font-size: 12px;
+    }
+
+    .messages {
+      padding: 22px 16px;
+      min-height: 430px;
+      max-height: 62vh;
+      overflow-y: auto;
+      background:
+        linear-gradient(transparent 95%, rgba(0, 0, 0, 0.02) 100%), #fcfdff;
+    }
+
+    .empty {
+      text-align: center;
+      color: var(--muted);
+      margin-top: 38px;
+      font-size: 14px;
+    }
+
+    .msg-row {
+      display: flex;
+      margin-bottom: 14px;
+    }
+
+    .msg-row.user {
+      justify-content: flex-end;
+    }
+
+    .msg-row.assistant {
+      justify-content: flex-start;
+    }
+
+    .bubble {
+      max-width: min(680px, 84%);
+      border-radius: 16px;
+      padding: 12px 14px;
+      white-space: pre-wrap;
+      line-height: 1.55;
+      font-size: 14px;
+      border: 1px solid var(--border);
+    }
+
+    .msg-row.user .bubble {
+      background: var(--primary-soft);
+      border-color: #cfe2ff;
+    }
+
+    .msg-row.assistant .bubble {
+      background: var(--assistant);
+    }
+
+    .meta {
+      margin-top: 5px;
+      font-size: 12px;
+      color: #8a93a1;
+    }
+
+    .composer {
+      border-top: 1px solid var(--border);
+      padding: 14px;
+      background: #ffffff;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+    }
+
+    .input-wrap {
+      flex: 1;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 10px 12px;
+      background: #fff;
+    }
+
+    .prompt-input {
+      width: 100%;
+      border: none;
+      outline: none;
+      resize: none;
+      min-height: 44px;
+      max-height: 130px;
+      font-size: 14px;
+      line-height: 1.55;
+      font-family: inherit;
+    }
+
+    .btn {
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: 11px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+
+    .btn-voice {
+      min-width: 96px;
+    }
+
+    .hint {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .status-pill.typing::after {
+      content: " ● ● ●";
+      margin-left: 4px;
+      letter-spacing: 2px;
+      font-size: 11px;
+      color: #94a3b8;
+      animation: pulse 1s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%,
+      100% {
+        opacity: 0.3;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="chat-shell">
+      <header class="header">
+        <h1 class="title">AI 助手</h1>
+        <div class="subtitle">
+          录音后自动识别（简体中文/英文），再流式回复。单次录音最长 2 分钟。
+        </div>
+        <div class="status-pill" id="status">状态：未开始</div>
+      </header>
+
+      <section class="messages" id="messages">
+        <div class="empty" id="emptyTip">点击下方开始录音，体验语音问答。</div>
+      </section>
+
+      <footer class="composer">
+        <div class="toolbar">
+          <div class="input-wrap">
+            <textarea
+              class="prompt-input"
+              id="promptInput"
+              placeholder="输入问题，回车发送（Shift+Enter 换行）；也可以用语音按钮说话"
+            ></textarea>
+          </div>
+          <button class="btn btn-voice" id="recordBtn" type="button">语音输入</button>
+          <button class="btn btn-primary" id="sendBtn" type="button">发送</button>
+          <button class="btn" id="ttsTestBtn" type="button">测试 TTS</button>
+        </div>
+        <div class="hint">
+          多轮记忆已开启。TTS：OpenAI 流式 MP3 → WS。点「测试 TTS」或 GET
+          /speech/tts/test?text=你好&amp;sessionId=…
+        </div>
+      </footer>
+    </section>
+  </main>
+
+  <script>
+    const promptInput = document.getElementById("promptInput");
+    const sendBtn = document.getElementById("sendBtn");
+    const recordBtn = document.getElementById("recordBtn");
+    const ttsTestBtn = document.getElementById("ttsTestBtn");
+    const statusEl = document.getElementById("status");
+    const messagesEl = document.getElementById("messages");
+    const emptyTipEl = document.getElementById("emptyTip");
+
+    let mediaRecorder = null;
+    let chunks = [];
+    let activeFetchAbort = null;
+    let chatHistory = [];
+    let activeAssistantContentEl = null;
+    let activeAssistantMetaEl = null;
+    let activeRecordStream = null;
+    let isRecording = false;
+    let maxDurationTimer = null;
+    let statusInterval = null;
+    let recordingStartedAt = null;
+    let stoppedByMaxDuration = false;
+
+    const MAX_RECORD_MS = 2 * 60 * 1000;
+
+    let ttsWs = null;
+    let ttsSessionId = null;
+    let ttsConnectPromise = null;
+    let ttsAudioChunks = [];
+    let ttsPlaybackAudio = null;
+
+    function setStatus(text, isTyping = false) {
+      statusEl.textContent = "状态：" + text;
+      statusEl.classList.toggle("typing", isTyping);
+    }
+
+    function nowTime() {
+      return new Date().toLocaleTimeString("zh-CN", { hour12: false });
+    }
+
+    function scrollToBottom() {
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function hideEmptyTip() {
+      if (emptyTipEl) {
+        emptyTipEl.style.display = "none";
+      }
+    }
+
+    function appendMessage(role, text, metaText) {
+      hideEmptyTip();
+      const row = document.createElement("div");
+      row.className = "msg-row " + role;
+
+      const bubble = document.createElement("div");
+      bubble.className = "bubble";
+
+      const content = document.createElement("div");
+      content.textContent = text;
+
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      meta.textContent = metaText || nowTime();
+
+      bubble.appendChild(content);
+      bubble.appendChild(meta);
+      row.appendChild(bubble);
+      messagesEl.appendChild(row);
+      scrollToBottom();
+
+      return { row, bubble, content, meta };
+    }
+
+    function closeActiveStream() {
+      if (activeFetchAbort) {
+        activeFetchAbort.abort();
+        activeFetchAbort = null;
+      }
+    }
+
+    function resetTtsPlayback() {
+      ttsAudioChunks = [];
+      if (ttsPlaybackAudio) {
+        ttsPlaybackAudio.pause();
+        ttsPlaybackAudio = null;
+      }
+    }
+
+    function playTtsChunks() {
+      if (!ttsAudioChunks.length) return;
+      const blob = new Blob(ttsAudioChunks, { type: "audio/mpeg" });
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      ttsPlaybackAudio = audio;
+      audio.onended = () => URL.revokeObjectURL(url);
+      audio.play().catch(() => {
+        setStatus("自动播放被阻止，请手动允许音频播放");
+      });
+    }
+
+    function handleTtsWsMessage(event) {
+      if (event.data instanceof ArrayBuffer) {
+        ttsAudioChunks.push(event.data);
+        return;
+      }
+      if (typeof event.data !== "string") return;
+
+      try {
+        const msg = JSON.parse(event.data);
+        if (msg.type === "session" && msg.sessionId) {
+          ttsSessionId = msg.sessionId;
+          return;
+        }
+        if (msg.type === "tts_started") {
+          resetTtsPlayback();
+          setStatus("TTS 合成中…");
+          return;
+        }
+        if (msg.type === "tts_final") {
+          playTtsChunks();
+          setStatus("TTS 播放完成");
+          return;
+        }
+        if (msg.type === "tts_error") {
+          setStatus("TTS 错误：" + (msg.message || "未知"));
+          return;
+        }
+        if (msg.type === "tts_closed") {
+          setStatus("TTS 连接已关闭");
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    function ensureTtsConnection() {
+      if (ttsWs && ttsWs.readyState === WebSocket.OPEN && ttsSessionId) {
+        return Promise.resolve(ttsSessionId);
+      }
+
+      if (ttsConnectPromise) {
+        return ttsConnectPromise;
+      }
+
+      ttsConnectPromise = new Promise((resolve, reject) => {
+        const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+        const wsUrl = protocol + "://" + window.location.host + "/speech/tts/ws";
+        const ws = new WebSocket(wsUrl);
+        ws.binaryType = "arraybuffer";
+        ttsWs = ws;
+
+        const timeoutId = setTimeout(() => {
+          ws.close();
+          reject(new Error("TTS WebSocket 连接超时"));
+        }, 10000);
+
+        ws.onmessage = (event) => {
+          handleTtsWsMessage(event);
+          if (ttsSessionId) {
+            clearTimeout(timeoutId);
+            resolve(ttsSessionId);
+          }
+        };
+
+        ws.onerror = () => {
+          clearTimeout(timeoutId);
+          reject(new Error("TTS WebSocket 连接失败"));
+        };
+
+        ws.onclose = () => {
+          ttsWs = null;
+          ttsSessionId = null;
+        };
+      }).finally(() => {
+        ttsConnectPromise = null;
+      });
+
+      return ttsConnectPromise;
+    }
+
+    function consumeSseBuffer(buffer) {
+      let aiDelta = "";
+      let rest = buffer;
+      let splitAt = rest.indexOf("\n\n");
+      while (splitAt !== -1) {
+        const block = rest.slice(0, splitAt);
+        rest = rest.slice(splitAt + 2);
+        for (const line of block.split("\n")) {
+          if (line.startsWith("data:")) {
+            const payload = line.startsWith("data: ")
+              ? line.slice(6)
+              : line.slice(5);
+            aiDelta += payload;
+          }
+        }
+        splitAt = rest.indexOf("\n\n");
+      }
+      return { aiDelta, rest };
+    }
+
+    function formatRemaining(ms) {
+      const sec = Math.ceil(ms / 1000);
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return m + ":" + String(s).padStart(2, "0");
+    }
+
+    function clearRecordingTimers() {
+      if (maxDurationTimer) {
+        clearTimeout(maxDurationTimer);
+        maxDurationTimer = null;
+      }
+      if (statusInterval) {
+        clearInterval(statusInterval);
+        statusInterval = null;
+      }
+    }
+
+    function updateRecordingStatus() {
+      if (!recordingStartedAt) return;
+      const remaining = Math.max(
+        0,
+        MAX_RECORD_MS - (Date.now() - recordingStartedAt),
+      );
+      setStatus(
+        "录音中… 剩余 " +
+          formatRemaining(remaining) +
+          "，点击「停止录音」完成提问",
+      );
+    }
+
+    function setComposerBusy(busy) {
+      sendBtn.disabled = busy;
+      if (!isRecording) {
+        recordBtn.disabled = busy;
+        promptInput.disabled = busy;
+      }
+    }
+
+    function setRecordingUI(recording) {
+      isRecording = recording;
+      recordBtn.textContent = recording ? "停止录音" : "语音输入";
+      recordBtn.classList.toggle("btn-primary", recording);
+      if (recording) {
+        sendBtn.disabled = true;
+      }
+      recordBtn.disabled = false;
+    }
+
+    function stopRecording(byMaxDuration) {
+      if (!mediaRecorder || mediaRecorder.state === "inactive") return;
+      stoppedByMaxDuration = Boolean(byMaxDuration);
+      clearRecordingTimers();
+      mediaRecorder.stop();
+      if (stoppedByMaxDuration) {
+        setStatus("已达 2 分钟上限，正在识别...");
+      } else {
+        setStatus("已停止录音，正在识别...");
+      }
+    }
+
+    async function uploadAndRecognize(blob) {
+      const formData = new FormData();
+      formData.append("audio", blob, "record.ogg");
+
+      const response = await fetch("/speech/asr", {
+        method: "POST",
+        body: formData,
+      });
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || "ASR 请求失败");
+      }
+      const data = await response.json();
+      return data.text || "";
+    }
+
+    async function streamAiReply(query, history) {
+      closeActiveStream();
+
+      const aiMsg = appendMessage("assistant", "", "AI 正在回答...");
+      activeAssistantContentEl = aiMsg.content;
+      activeAssistantMetaEl = aiMsg.meta;
+
+      const abort = new AbortController();
+      activeFetchAbort = abort;
+
+      const response = await fetch("/ai/chat/stream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query, history }),
+        signal: abort.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error((await response.text()) || "AI 流式请求失败");
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let aiResult = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const parsed = consumeSseBuffer(buffer);
+        buffer = parsed.rest;
+        if (parsed.aiDelta) {
+          aiResult += parsed.aiDelta;
+          activeAssistantContentEl.textContent = aiResult || "（空结果）";
+          scrollToBottom();
+        }
+      }
+
+      const tail = consumeSseBuffer(buffer + "\n\n");
+      if (tail.aiDelta) {
+        aiResult += tail.aiDelta;
+        activeAssistantContentEl.textContent = aiResult || "（空结果）";
+      }
+
+      if (activeFetchAbort === abort) {
+        activeFetchAbort = null;
+      }
+      if (activeAssistantMetaEl) {
+        activeAssistantMetaEl.textContent = "AI 回复完成 " + nowTime();
+      }
+      return aiResult;
+    }
+
+    async function askWithQuery(query, source) {
+      const trimmed = query.trim();
+      if (!trimmed) {
+        setStatus("请输入问题");
+        return;
+      }
+
+      appendMessage("user", trimmed, source + " " + nowTime());
+      promptInput.value = "";
+      setComposerBusy(true);
+      setStatus("AI 正在流式回答...", true);
+
+      const historyForApi = chatHistory.map((item) => ({
+        role: item.role,
+        content: item.content,
+      }));
+      chatHistory.push({ role: "user", content: trimmed });
+
+      try {
+        const aiResult = await streamAiReply(trimmed, historyForApi);
+        chatHistory.push({
+          role: "assistant",
+          content: aiResult || "（空结果）",
+        });
+        setStatus("对话完成");
+      } catch (error) {
+        chatHistory.pop();
+        appendMessage(
+          "assistant",
+          "处理失败：" + (error.message || String(error)),
+          "异常 " + nowTime(),
+        );
+        setStatus("处理失败");
+      } finally {
+        setComposerBusy(false);
+      }
+    }
+
+    sendBtn.addEventListener("click", async () => {
+      await askWithQuery(promptInput.value, "文字提问");
+    });
+
+    promptInput.addEventListener("keydown", async (event) => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        await askWithQuery(promptInput.value, "文字提问");
+      }
+    });
+
+    recordBtn.addEventListener("click", async () => {
+      if (isRecording) {
+        stopRecording(false);
+        return;
+      }
+
+      if (sendBtn.disabled && !isRecording) {
+        return;
+      }
+
+      try {
+        closeActiveStream();
+        activeRecordStream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+        });
+        chunks = [];
+        const preferredMimeType = "audio/ogg;codecs=opus";
+        mediaRecorder = MediaRecorder.isTypeSupported(preferredMimeType)
+          ? new MediaRecorder(activeRecordStream, {
+              mimeType: preferredMimeType,
+            })
+          : new MediaRecorder(activeRecordStream);
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data && event.data.size > 0) {
+            chunks.push(event.data);
+          }
+        };
+
+        mediaRecorder.onstop = async () => {
+          clearRecordingTimers();
+          const wasMaxDuration = stoppedByMaxDuration;
+          stoppedByMaxDuration = false;
+
+          try {
+            const blob = new Blob(chunks, {
+              type: mediaRecorder.mimeType || "audio/webm",
+            });
+            if (!blob.size) {
+              throw new Error("录音数据为空，请至少录制 1 秒再上传");
+            }
+
+            setStatus(
+              wasMaxDuration ? "已达 2 分钟上限，语音识别中..." : "语音识别中...",
+            );
+            const recognized = (await uploadAndRecognize(blob)).trim();
+            promptInput.value = recognized;
+
+            if (!recognized) {
+              setStatus("识别为空，请重新录音");
+              return;
+            }
+
+            await askWithQuery(recognized, "语音提问");
+          } catch (error) {
+            appendMessage(
+              "assistant",
+              "语音处理失败：" + (error.message || String(error)),
+              "异常 " + nowTime(),
+            );
+            setStatus("语音处理失败");
+          } finally {
+            if (activeRecordStream) {
+              activeRecordStream.getTracks().forEach((t) => t.stop());
+              activeRecordStream = null;
+            }
+            setRecordingUI(false);
+          }
+        };
+
+        recordingStartedAt = Date.now();
+        stoppedByMaxDuration = false;
+        clearRecordingTimers();
+
+        mediaRecorder.start(250);
+        setRecordingUI(true);
+        updateRecordingStatus();
+        statusInterval = setInterval(updateRecordingStatus, 1000);
+        maxDurationTimer = setTimeout(() => stopRecording(true), MAX_RECORD_MS);
+      } catch (error) {
+        appendMessage(
+          "assistant",
+          "无法开始录音：" + (error.message || String(error)),
+          "异常 " + nowTime(),
+        );
+        setStatus("无法开始录音");
+        clearRecordingTimers();
+        setRecordingUI(false);
+        setComposerBusy(false);
+      }
+    });
+
+    async function runTtsTest() {
+      const id = await ensureTtsConnection();
+      const text =
+        promptInput.value.trim() || "你好，这是 OpenAI 语音合成测试。";
+      setStatus("TTS 测试中…");
+      const response = await fetch(
+        "/speech/tts/test?text=" +
+          encodeURIComponent(text) +
+          "&sessionId=" +
+          encodeURIComponent(id),
+      );
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(errText || "TTS 测试失败");
+      }
+      const data = await response.json();
+      setStatus("TTS 已推送 " + (data.bytes || 0) + " 字节");
+    }
+
+    ttsTestBtn.addEventListener("click", async () => {
+      try {
+        await runTtsTest();
+      } catch (error) {
+        setStatus("TTS 测试失败");
+        appendMessage(
+          "assistant",
+          "TTS 测试：" + (error.message || String(error)),
+          "异常 " + nowTime(),
+        );
+      }
+    });
+
+    ensureTtsConnection()
+      .then((id) => {
+        setStatus("TTS 已连接 " + id.slice(0, 8) + "…");
+      })
+      .catch((error) => {
+        setStatus("TTS 未连接：" + (error.message || String(error)));
+      });
+  </script>
+</body>
+</html>

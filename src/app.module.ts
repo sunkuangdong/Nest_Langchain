@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { MailerModule } from '@nestjs-modules/mailer';
+import { AppEventEmitterModule } from './common/app-event-emitter.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { BookModule } from './book/book.module';
 import { AiModule } from './ai/ai.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
@@ -13,11 +13,13 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { JobModule } from './job/job.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './users/entities/user.entity';
+import { SpeechModule } from './speech/speech.module';
 
 @Module({
   imports: [
+    AppEventEmitterModule,
     ScheduleModule.forRoot(),
-    ServeStaticModule.forRoot({ rootPath: join(__dirname, '..', 'public') }),
+    ServeStaticModule.forRoot({ rootPath: join(__dirname, 'public') }),
     ConfigModule.forRoot({ isGlobal: true }),
     MailerModule.forRootAsync({
       inject: [ConfigService],
@@ -51,8 +53,8 @@ import { User } from './users/entities/user.entity';
     AiModule,
     UsersModule,
     JobModule,
+    SpeechModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
 })
 export class AppModule {}
