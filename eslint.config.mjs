@@ -35,7 +35,7 @@ export default tseslint.config(
   {
     files: ['**/*.dto.ts'],
     rules: {
-      // class-validator 装饰器在 strict type-checked 下常被误判为 unsafe call
+      // class-validator decorators are often flagged as unsafe-call under strict type-checked
       '@typescript-eslint/no-unsafe-call': 'off',
     },
   },
