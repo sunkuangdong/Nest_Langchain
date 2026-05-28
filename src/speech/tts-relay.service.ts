@@ -3,10 +3,16 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  OnModuleInit,
   OnModuleDestroy,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { randomUUID } from 'node:crypto';
+import {
+  AI_TTS_STREAM_EVENT,
+  type AiTtsStreamEvent,
+} from '../common/stream-events';
 
 /** ws 客户端在本服务里用到的能力（避免与 DOM WebSocket 类型混淆） */
 export type TtsClientSocket = {
@@ -27,11 +33,22 @@ type ClientSession = {
 };
 
 @Injectable()
-export class TtsRelayService implements OnModuleDestroy {
+export class TtsRelayService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(TtsRelayService.name);
   private readonly sessions = new Map<string, ClientSession>();
+  private readonly sessionSynthesisQueues = new Map<string, Promise<void>>();
 
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
+
+  onModuleInit(): void {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    this.eventEmitter.on(AI_TTS_STREAM_EVENT, (event: AiTtsStreamEvent) =>
+      this.onAiTtsStreamEvent(event),
+    );
+  }
 
   onModuleDestroy(): void {
     for (const session of this.sessions.values()) {
@@ -59,6 +76,44 @@ export class TtsRelayService implements OnModuleDestroy {
 
   unregisterClient(sessionId: string): void {
     this.closeSession(sessionId, 'client disconnected');
+  }
+
+  onAiTtsStreamEvent(event: AiTtsStreamEvent): void {
+    if (event.type === 'start') {
+      const session = this.sessions.get(event.sessionId);
+      if (session) {
+        this.sendClientJson(session.clientWs, {
+          type: 'tts_stream_started',
+          sessionId: event.sessionId,
+        });
+      }
+      return;
+    }
+
+    if (event.type === 'end') {
+      const session = this.sessions.get(event.sessionId);
+      if (session) {
+        this.sendClientJson(session.clientWs, {
+          type: 'tts_stream_ended',
+          sessionId: event.sessionId,
+        });
+      }
+      return;
+    }
+
+    if (event.type === 'error') {
+      const session = this.sessions.get(event.sessionId);
+      if (session) {
+        this.sendClientJson(session.clientWs, {
+          type: 'tts_error',
+          sessionId: event.sessionId,
+          message: event.error,
+        });
+      }
+      return;
+    }
+
+    this.enqueueSynthesis(event.sessionId, event.chunk);
   }
 
   handleClientMessage(
@@ -136,6 +191,31 @@ export class TtsRelayService implements OnModuleDestroy {
     } finally {
       session.synthesizing = false;
     }
+  }
+
+  private enqueueSynthesis(sessionId: string, text: string): void {
+    const previous =
+      this.sessionSynthesisQueues.get(sessionId) ?? Promise.resolve();
+    const current = previous
+      .catch(() => undefined)
+      .then(async () => {
+        try {
+          await this.synthesizeToSession(sessionId, text);
+        } catch (error: unknown) {
+          const message =
+            error instanceof Error ? error.message : String(error);
+          this.logger.warn(
+            `AI TTS synthesize failed for ${sessionId}: ${message}`,
+          );
+        }
+      });
+
+    this.sessionSynthesisQueues.set(sessionId, current);
+    void current.finally(() => {
+      if (this.sessionSynthesisQueues.get(sessionId) === current) {
+        this.sessionSynthesisQueues.delete(sessionId);
+      }
+    });
   }
 
   private async streamOpenAiSpeechToClient(

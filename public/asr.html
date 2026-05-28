@@ -238,8 +238,7 @@
           <button class="btn" id="ttsTestBtn" type="button">测试 TTS</button>
         </div>
         <div class="hint">
-          多轮记忆已开启。TTS：OpenAI 流式 MP3 → WS。点「测试 TTS」或 GET
-          /speech/tts/test?text=你好&amp;sessionId=…
+          多轮记忆已开启。提问会自动带 ttsSessionId 语音播报（需保持本页 WS 连接）。
         </div>
       </footer>
     </section>
@@ -274,6 +273,9 @@
     let ttsConnectPromise = null;
     let ttsAudioChunks = [];
     let ttsPlaybackAudio = null;
+    let ttsPlayQueue = [];
+    let ttsIsPlaying = false;
+    let ttsStreamActive = false;
 
     function setStatus(text, isTyping = false) {
       statusEl.textContent = "状态：" + text;
@@ -325,24 +327,56 @@
       }
     }
 
-    function resetTtsPlayback() {
+    function resetTtsSentenceBuffer() {
       ttsAudioChunks = [];
-      if (ttsPlaybackAudio) {
-        ttsPlaybackAudio.pause();
-        ttsPlaybackAudio = null;
-      }
     }
 
-    function playTtsChunks() {
-      if (!ttsAudioChunks.length) return;
-      const blob = new Blob(ttsAudioChunks, { type: "audio/mpeg" });
+    function drainTtsPlayQueue() {
+      if (ttsIsPlaying || !ttsPlayQueue.length) {
+        if (!ttsIsPlaying && !ttsPlayQueue.length && !ttsStreamActive) {
+          return;
+        }
+        if (!ttsIsPlaying && !ttsPlayQueue.length && ttsStreamActive) {
+          setStatus("AI 语音播报中…");
+        }
+        return;
+      }
+
+      ttsIsPlaying = true;
+      const blob = ttsPlayQueue.shift();
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
       ttsPlaybackAudio = audio;
-      audio.onended = () => URL.revokeObjectURL(url);
+      audio.onended = () => {
+        URL.revokeObjectURL(url);
+        ttsIsPlaying = false;
+        ttsPlaybackAudio = null;
+        if (ttsPlayQueue.length) {
+          setStatus("AI 语音播报中…");
+        } else if (!ttsStreamActive) {
+          setStatus("TTS 播放完成");
+        }
+        drainTtsPlayQueue();
+      };
+      audio.onerror = () => {
+        URL.revokeObjectURL(url);
+        ttsIsPlaying = false;
+        ttsPlaybackAudio = null;
+        drainTtsPlayQueue();
+      };
       audio.play().catch(() => {
-        setStatus("自动播放被阻止，请手动允许音频播放");
+        ttsIsPlaying = false;
+        ttsPlaybackAudio = null;
+        setStatus("自动播放被阻止，请先点击页面再提问");
       });
+    }
+
+    function enqueueTtsSentencePlayback() {
+      if (!ttsAudioChunks.length) return;
+      const blob = new Blob(ttsAudioChunks, { type: "audio/mpeg" });
+      ttsAudioChunks = [];
+      ttsPlayQueue.push(blob);
+      drainTtsPlayQueue();
     }
 
     function handleTtsWsMessage(event) {
@@ -358,21 +392,36 @@
           ttsSessionId = msg.sessionId;
           return;
         }
+        if (msg.type === "tts_stream_started") {
+          ttsStreamActive = true;
+          setStatus("AI 语音播报中…");
+          return;
+        }
+        if (msg.type === "tts_stream_ended") {
+          ttsStreamActive = false;
+          if (!ttsIsPlaying && !ttsPlayQueue.length) {
+            setStatus("AI 语音播报完成");
+          }
+          return;
+        }
         if (msg.type === "tts_started") {
-          resetTtsPlayback();
-          setStatus("TTS 合成中…");
+          resetTtsSentenceBuffer();
+          if (!ttsStreamActive) {
+            setStatus("TTS 合成中…");
+          }
           return;
         }
         if (msg.type === "tts_final") {
-          playTtsChunks();
-          setStatus("TTS 播放完成");
+          enqueueTtsSentencePlayback();
           return;
         }
         if (msg.type === "tts_error") {
+          ttsStreamActive = false;
           setStatus("TTS 错误：" + (msg.message || "未知"));
           return;
         }
         if (msg.type === "tts_closed") {
+          ttsStreamActive = false;
           setStatus("TTS 连接已关闭");
         }
       } catch {
@@ -532,10 +581,22 @@
       const abort = new AbortController();
       activeFetchAbort = abort;
 
+      let ttsIdForChat = null;
+      try {
+        ttsIdForChat = await ensureTtsConnection();
+      } catch (error) {
+        setStatus("TTS 未连接，仅文字回复：" + (error.message || String(error)));
+      }
+
+      const payload = { query, history };
+      if (ttsIdForChat) {
+        payload.ttsSessionId = ttsIdForChat;
+      }
+
       const response = await fetch("/ai/chat/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query, history }),
+        body: JSON.stringify(payload),
         signal: abort.signal,
       });
 

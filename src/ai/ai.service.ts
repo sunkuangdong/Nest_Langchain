@@ -22,6 +22,11 @@ import {
   ToolMessage,
 } from '@langchain/core/messages';
 import { z } from 'zod';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import {
+  AI_TTS_STREAM_EVENT,
+  type AiTtsStreamEvent,
+} from '../common/stream-events';
 
 function normalizeUserId(userId: string): string {
   const trimmed = userId.trim();
@@ -146,6 +151,46 @@ export type ChatHistoryItem = {
 };
 
 const MAX_CHAT_HISTORY = 20;
+const MAX_TTS_BUFFER_WITHOUT_PUNCT = 80;
+
+type RunChainStreamOptions = {
+  ttsSessionId?: string;
+};
+
+function splitReadyTtsSegments(
+  rawBuffer: string,
+  forceFlush: boolean,
+): { segments: string[]; rest: string } {
+  const segments: string[] = [];
+  let rest = rawBuffer;
+
+  const sentenceEndRegex = /[。！？!?；;：:\n]/;
+  let match = sentenceEndRegex.exec(rest);
+  while (match) {
+    const end = (match.index ?? 0) + 1;
+    const segment = rest.slice(0, end).trim();
+    if (segment) {
+      segments.push(segment);
+    }
+    rest = rest.slice(end);
+    match = sentenceEndRegex.exec(rest);
+  }
+
+  if (!forceFlush && rest.trim().length >= MAX_TTS_BUFFER_WITHOUT_PUNCT) {
+    segments.push(rest.trim());
+    rest = '';
+  }
+
+  if (forceFlush) {
+    const finalSegment = rest.trim();
+    if (finalSegment) {
+      segments.push(finalSegment);
+    }
+    rest = '';
+  }
+
+  return { segments, rest };
+}
 
 function parseSendMailArgs(rawArgs: unknown): SendMailArgs {
   let args = rawArgs;
@@ -200,6 +245,7 @@ export class AiService {
       CronJobArgs,
       string
     >,
+    private readonly eventEmitter: EventEmitter2,
   ) {
     this.modelWithTools = this.model.bindTools([
       this.queryUserTool,
@@ -316,8 +362,39 @@ export class AiService {
   async *runChainStream(
     query: string,
     history: ChatHistoryItem[] = [],
+    options: RunChainStreamOptions = {},
   ): AsyncIterable<string> {
     const messages = this.buildAgentMessages(query, history);
+    const ttsSessionId = options.ttsSessionId?.trim();
+    let ttsTextBuffer = '';
+
+    const emitTtsEvent = (event: AiTtsStreamEvent) => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      this.eventEmitter.emit(AI_TTS_STREAM_EVENT, event);
+    };
+    const flushTts = (forceFlush: boolean) => {
+      if (!ttsSessionId) return;
+      const { segments, rest } = splitReadyTtsSegments(
+        ttsTextBuffer,
+        forceFlush,
+      );
+      ttsTextBuffer = rest;
+      for (const segment of segments) {
+        emitTtsEvent({
+          type: 'chunk',
+          sessionId: ttsSessionId,
+          chunk: segment,
+        });
+      }
+    };
+
+    if (ttsSessionId) {
+      emitTtsEvent({
+        type: 'start',
+        sessionId: ttsSessionId,
+        query,
+      });
+    }
 
     while (true) {
       // One turn: model may reason and optionally request tool calls
@@ -335,10 +412,22 @@ export class AiService {
 
           // Stream text only until tool-call chunks appear in this turn
           if (!hasToolCallChunk && chunk.content) {
-            yield chunk.content as string;
+            const textChunk = chunk.content as string;
+            yield textChunk;
+            if (ttsSessionId) {
+              ttsTextBuffer += textChunk;
+              flushTts(false);
+            }
           }
         }
       } catch (e) {
+        if (ttsSessionId) {
+          emitTtsEvent({
+            type: 'error',
+            sessionId: ttsSessionId,
+            error: e instanceof Error ? e.message : String(e),
+          });
+        }
         console.error('for await failed before yielding next chunk');
         console.error(e);
         console.error(e instanceof Error ? e.stack : e);
@@ -355,6 +444,13 @@ export class AiService {
 
       // No tool calls: final answer was already streamed above; done
       if (!toolCalls.length) {
+        if (ttsSessionId) {
+          flushTts(true);
+          emitTtsEvent({
+            type: 'end',
+            sessionId: ttsSessionId,
+          });
+        }
         return;
       }
 

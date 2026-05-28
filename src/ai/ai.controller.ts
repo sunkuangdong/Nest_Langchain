@@ -15,6 +15,7 @@ import { JobAgentService } from './job-agent.service';
 type ChatStreamBody = {
   query: string;
   history?: ChatHistoryItem[];
+  ttsSessionId?: string;
 };
 
 function isChatHistoryItem(item: unknown): item is ChatHistoryItem {
@@ -71,9 +72,12 @@ export class AiController {
   chatStream(
     @Query('query') query: string,
     @Query('history') historyJson?: string,
+    @Query('ttsSessionId') ttsSessionId?: string,
   ): Observable<MessageEvent> {
     const history = parseHistoryJson(historyJson);
-    const stream = this.aiService.runChainStream(query, history);
+    const stream = this.aiService.runChainStream(query, history, {
+      ttsSessionId,
+    });
 
     return from(stream).pipe(
       map((chunk) => ({
@@ -86,7 +90,9 @@ export class AiController {
   @Sse()
   chatStreamPost(@Body() body: ChatStreamBody): Observable<MessageEvent> {
     const history = Array.isArray(body.history) ? body.history : [];
-    const stream = this.aiService.runChainStream(body.query ?? '', history);
+    const stream = this.aiService.runChainStream(body.query ?? '', history, {
+      ttsSessionId: body.ttsSessionId,
+    });
 
     return from(stream).pipe(
       map((chunk) => ({
