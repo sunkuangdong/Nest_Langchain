@@ -41,7 +41,7 @@ export class SpeechController {
 
   /**
    * Dev: stream OpenAI TTS to an active WS session (step 3 test).
-   * Example: GET /speech/tts/test?text=你好&sessionId=<from asr.html status>
+   * Example: GET /speech/tts/test?text=hello&sessionId=<from asr.html status>
    */
   @Get('tts/test')
   async ttsTest(

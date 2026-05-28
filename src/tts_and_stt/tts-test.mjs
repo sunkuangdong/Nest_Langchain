@@ -3,9 +3,9 @@
  *
  * Usage:
  *   node src/tts_and_stt/tts-test.mjs "Hello, this is a test."
- *   node src/tts_and_stt/tts-test.mjs "你好，语音合成测试" ./out.mp3
- *   pnpm run tts:test "你好"              (do not use extra "--" before the text)
- *   pnpm run tts:test "你好" ./out.mp3
+ *   node src/tts_and_stt/tts-test.mjs "Hello, TTS test" ./out.mp3
+ *   pnpm run tts:test "Hello"              (do not use extra "--" before the text)
+ *   pnpm run tts:test "Hello" ./out.mp3
  * Default output: files/tts-output.mp3 (project root /files)
  *
  * .env: OPENAI_API_KEY, OPENAI_BASE_URL (optional, default api.openai.com/v1)

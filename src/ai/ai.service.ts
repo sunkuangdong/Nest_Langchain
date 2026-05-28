@@ -157,6 +157,27 @@ type RunChainStreamOptions = {
   ttsSessionId?: string;
 };
 
+/** LangChain stream chunk.content may be a string or a content-block array. */
+function extractStreamText(content: unknown): string {
+  if (content == null) return '';
+  if (typeof content === 'string') return content;
+  if (!Array.isArray(content)) return '';
+
+  let text = '';
+  for (const part of content) {
+    if (typeof part === 'string') {
+      text += part;
+      continue;
+    }
+    if (part && typeof part === 'object') {
+      const block = part as Record<string, unknown>;
+      if (typeof block.text === 'string') text += block.text;
+      else if (typeof block.content === 'string') text += block.content;
+    }
+  }
+  return text;
+}
+
 function splitReadyTtsSegments(
   rawBuffer: string,
   forceFlush: boolean,
@@ -367,6 +388,8 @@ export class AiService {
     const messages = this.buildAgentMessages(query, history);
     const ttsSessionId = options.ttsSessionId?.trim();
     let ttsTextBuffer = '';
+    /** Chars already fed from stream chunks into TTS (avoids duplicate segments vs fullMessage). */
+    let ttsFedLength = 0;
 
     const emitTtsEvent = (event: AiTtsStreamEvent) => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
@@ -411,13 +434,23 @@ export class AiService {
             fullAIMessage.tool_call_chunks.length > 0;
 
           // Stream text only until tool-call chunks appear in this turn
-          if (!hasToolCallChunk && chunk.content) {
-            const textChunk = chunk.content as string;
+          const textChunk = extractStreamText(chunk.content);
+          if (!hasToolCallChunk && textChunk) {
             yield textChunk;
             if (ttsSessionId) {
               ttsTextBuffer += textChunk;
+              ttsFedLength += textChunk.length;
               flushTts(false);
             }
+          }
+        }
+
+        if (ttsSessionId && fullAIMessage) {
+          const fullText = extractStreamText(fullAIMessage.content);
+          if (fullText.length > ttsFedLength) {
+            ttsTextBuffer += fullText.slice(ttsFedLength);
+            ttsFedLength = fullText.length;
+            flushTts(false);
           }
         }
       } catch (e) {
@@ -441,6 +474,10 @@ export class AiService {
       messages.push(fullAIMessage);
 
       const toolCalls = fullAIMessage.tool_calls ?? [];
+
+      if (toolCalls.length && ttsSessionId) {
+        flushTts(true);
+      }
 
       // No tool calls: final answer was already streamed above; done
       if (!toolCalls.length) {

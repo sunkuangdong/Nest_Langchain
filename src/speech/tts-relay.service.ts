@@ -14,7 +14,7 @@ import {
   type AiTtsStreamEvent,
 } from '../common/stream-events';
 
-/** ws 客户端在本服务里用到的能力（避免与 DOM WebSocket 类型混淆） */
+/** Minimal WS client surface used here (avoids DOM WebSocket type clashes). */
 export type TtsClientSocket = {
   readonly readyState: number;
   send(data: string | Buffer, options?: { binary?: boolean }): void;
@@ -37,6 +37,8 @@ export class TtsRelayService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(TtsRelayService.name);
   private readonly sessions = new Map<string, ClientSession>();
   private readonly sessionSynthesisQueues = new Map<string, Promise<void>>();
+  private readonly onAiTtsStreamBound = (event: AiTtsStreamEvent) =>
+    this.onAiTtsStreamEvent(event);
 
   constructor(
     private readonly configService: ConfigService,
@@ -44,13 +46,16 @@ export class TtsRelayService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit(): void {
+    // Avoid duplicate listeners on hot reload (would synthesize/play each sentence twice).
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    this.eventEmitter.on(AI_TTS_STREAM_EVENT, (event: AiTtsStreamEvent) =>
-      this.onAiTtsStreamEvent(event),
-    );
+    this.eventEmitter.off(AI_TTS_STREAM_EVENT, this.onAiTtsStreamBound);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    this.eventEmitter.on(AI_TTS_STREAM_EVENT, this.onAiTtsStreamBound);
   }
 
   onModuleDestroy(): void {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    this.eventEmitter.off(AI_TTS_STREAM_EVENT, this.onAiTtsStreamBound);
     for (const session of this.sessions.values()) {
       this.closeSession(session.sessionId, 'module destroy');
     }
