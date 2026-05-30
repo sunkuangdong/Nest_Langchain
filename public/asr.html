@@ -235,9 +235,6 @@
           </div>
           <button class="btn btn-voice" id="recordBtn" type="button">语音输入</button>
           <button class="btn btn-primary" id="sendBtn" type="button">发送</button>
-          <button class="btn" id="ttsTestBtn" type="button" title="朗读输入框文字，不经过 AI">
-            朗读输入框
-          </button>
         </div>
         <div class="hint">
           多轮记忆已开启。提问会自动带 ttsSessionId 语音播报（需保持本页 WS 连接）。
@@ -250,7 +247,6 @@
     const promptInput = document.getElementById("promptInput");
     const sendBtn = document.getElementById("sendBtn");
     const recordBtn = document.getElementById("recordBtn");
-    const ttsTestBtn = document.getElementById("ttsTestBtn");
     const statusEl = document.getElementById("status");
     const messagesEl = document.getElementById("messages");
     const emptyTipEl = document.getElementById("emptyTip");
@@ -777,38 +773,6 @@
         clearRecordingTimers();
         setRecordingUI(false);
         setComposerBusy(false);
-      }
-    });
-
-    async function runTtsTest() {
-      const id = await ensureTtsConnection();
-      const text =
-        promptInput.value.trim() || "你好，这是 OpenAI 语音合成测试。";
-      setStatus("TTS 测试中…");
-      const response = await fetch(
-        "/speech/tts/test?text=" +
-          encodeURIComponent(text) +
-          "&sessionId=" +
-          encodeURIComponent(id),
-      );
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(errText || "TTS 测试失败");
-      }
-      const data = await response.json();
-      setStatus("TTS 已推送 " + (data.bytes || 0) + " 字节");
-    }
-
-    ttsTestBtn.addEventListener("click", async () => {
-      try {
-        await runTtsTest();
-      } catch (error) {
-        setStatus("TTS 测试失败");
-        appendMessage(
-          "assistant",
-          "TTS 测试：" + (error.message || String(error)),
-          "异常 " + nowTime(),
-        );
       }
     });
 

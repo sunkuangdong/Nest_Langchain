@@ -118,36 +118,8 @@ export class TtsRelayService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
+    if (!this.isSessionActive(event.sessionId)) return;
     this.enqueueSynthesis(event.sessionId, event.chunk);
-  }
-
-  handleClientMessage(
-    sessionId: string,
-    raw: Buffer | ArrayBuffer | Buffer[],
-  ): void {
-    const session = this.sessions.get(sessionId);
-    if (!session || session.closed) return;
-
-    const text = Buffer.isBuffer(raw)
-      ? raw.toString('utf8')
-      : Buffer.from(raw as ArrayBuffer).toString('utf8');
-
-    let msg: { type?: string; text?: string };
-    try {
-      msg = JSON.parse(text) as { type?: string; text?: string };
-    } catch {
-      return;
-    }
-
-    if (msg.type === 'tts_test' && typeof msg.text === 'string') {
-      void this.synthesizeToSession(sessionId, msg.text).catch(
-        (error: unknown) => {
-          const message =
-            error instanceof Error ? error.message : String(error);
-          this.logger.warn(`tts_test failed for ${sessionId}: ${message}`);
-        },
-      );
-    }
   }
 
   async synthesizeToSession(
@@ -198,12 +170,20 @@ export class TtsRelayService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  private isSessionActive(sessionId: string): boolean {
+    const session = this.sessions.get(sessionId);
+    return !!session && !session.closed;
+  }
+
   private enqueueSynthesis(sessionId: string, text: string): void {
+    if (!this.isSessionActive(sessionId)) return;
+
     const previous =
       this.sessionSynthesisQueues.get(sessionId) ?? Promise.resolve();
     const current = previous
       .catch(() => undefined)
       .then(async () => {
+        if (!this.isSessionActive(sessionId)) return;
         try {
           await this.synthesizeToSession(sessionId, text);
         } catch (error: unknown) {
@@ -271,8 +251,13 @@ export class TtsRelayService implements OnModuleInit, OnModuleDestroy {
 
   private closeSession(sessionId: string, reason: string): void {
     const session = this.sessions.get(sessionId);
-    if (!session) return;
+    if (!session) {
+      this.sessionSynthesisQueues.delete(sessionId);
+      return;
+    }
     session.closed = true;
+    session.synthesizing = false;
+    this.sessionSynthesisQueues.delete(sessionId);
 
     if (session.clientWs.readyState < WS_CLOSING) {
       this.sendClientJson(session.clientWs, { type: 'tts_closed', reason });

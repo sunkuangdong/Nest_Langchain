@@ -20,11 +20,6 @@ async function bootstrap() {
     const wantedSessionId = url.searchParams.get('sessionId') ?? undefined;
     const sessionId = ttsRelay.registerClient(socket, wantedSessionId);
 
-    socket.on('message', (data, isBinary) => {
-      if (isBinary) return;
-      ttsRelay.handleClientMessage(sessionId, data);
-    });
-
     socket.on('close', () => {
       ttsRelay.unregisterClient(sessionId);
     });
