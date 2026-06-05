@@ -30,11 +30,11 @@ const voice = process.env.TTS_VOICE || 'alloy';
 
 const SLEEP_INTERVAL_MS = 3000;
 const TEXTS = [
-  '傍晚我还在为晚霞开心，',
-  '突然接到电话说系统崩了，',
-  '我心里一沉冲回办公室，',
-  '好在大家一起排查后终于恢复，',
-  '我长长松了口气。',
+  'I was still enjoying the sunset glow,',
+  'when a call came saying the system was down,',
+  'my heart sank as I rushed back to the office,',
+  'luckily we troubleshot together and recovered,',
+  'and I let out a long sigh of relief.',
 ];
 
 const filesDir = path.join(process.cwd(), 'files/audio');

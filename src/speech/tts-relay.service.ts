@@ -129,17 +129,19 @@ export class TtsRelayService implements OnModuleInit, OnModuleDestroy {
     const session = this.sessions.get(sessionId);
     if (!session || session.closed) {
       throw new NotFoundException(
-        `TTS session 不存在或已关闭: ${sessionId}。请先打开 asr.html 建立 WebSocket。`,
+        `TTS session does not exist or is closed: ${sessionId}. Open asr.html first to establish a WebSocket.`,
       );
     }
 
     const input = text.trim();
     if (!input) {
-      throw new BadRequestException('text 不能为空');
+      throw new BadRequestException('text must not be empty');
     }
 
     if (session.synthesizing) {
-      throw new BadRequestException('当前 session 正在合成，请稍后再试');
+      throw new BadRequestException(
+        'this session is already synthesizing; try again later',
+      );
     }
 
     session.synthesizing = true;

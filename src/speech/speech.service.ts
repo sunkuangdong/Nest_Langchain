@@ -37,7 +37,7 @@ export class SpeechService {
     }
     formData.append(
       'prompt',
-      '简体中文或英文。Chinese speech: Simplified Chinese. English speech: English.',
+      'Simplified Chinese or English. Chinese speech: Simplified Chinese. English speech: English.',
     );
 
     const response = await fetch(`${baseURL}/audio/transcriptions`, {

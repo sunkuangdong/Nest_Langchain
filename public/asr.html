@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI 助手</title>
+  <title>AI Assistant</title>
   <style>
     :root {
       --bg: #f3f4f7;
@@ -213,15 +213,15 @@
   <main class="page">
     <section class="chat-shell">
       <header class="header">
-        <h1 class="title">AI 助手</h1>
+        <h1 class="title">AI Assistant</h1>
         <div class="subtitle">
-          录音后自动识别（简体中文/英文），再流式回复。单次录音最长 2 分钟。
+          Record speech (Simplified Chinese or English), then get a streaming reply. Max 2 minutes per recording.
         </div>
-        <div class="status-pill" id="status">状态：未开始</div>
+        <div class="status-pill" id="status">Status: not started</div>
       </header>
 
       <section class="messages" id="messages">
-        <div class="empty" id="emptyTip">点击下方开始录音，体验语音问答。</div>
+        <div class="empty" id="emptyTip">Tap below to record and try voice Q&amp;A.</div>
       </section>
 
       <footer class="composer">
@@ -230,14 +230,14 @@
             <textarea
               class="prompt-input"
               id="promptInput"
-              placeholder="输入问题，回车发送（Shift+Enter 换行）；也可以用语音按钮说话"
+              placeholder="Type a question and press Enter to send (Shift+Enter for newline); or use the voice button"
             ></textarea>
           </div>
-          <button class="btn btn-voice" id="recordBtn" type="button">语音输入</button>
-          <button class="btn btn-primary" id="sendBtn" type="button">发送</button>
+          <button class="btn btn-voice" id="recordBtn" type="button">Voice input</button>
+          <button class="btn btn-primary" id="sendBtn" type="button">Send</button>
         </div>
         <div class="hint">
-          多轮记忆已开启。提问会自动带 ttsSessionId 语音播报（需保持本页 WS 连接）。
+          Multi-turn memory is on. Each question includes ttsSessionId for voice playback; TTS reconnects automatically on disconnect.
         </div>
       </footer>
     </section>
@@ -266,9 +266,17 @@
 
     const MAX_RECORD_MS = 2 * 60 * 1000;
 
+    const TTS_CONNECT_TIMEOUT_MS = 10000;
+    const TTS_RECONNECT_BASE_MS = 1000;
+    const TTS_RECONNECT_MAX_MS = 30000;
+
     let ttsWs = null;
     let ttsSessionId = null;
+    let ttsWantedSessionId = null;
     let ttsConnectPromise = null;
+    let ttsReconnectTimer = null;
+    let ttsReconnectAttempt = 0;
+    let ttsSuppressReconnect = false;
     let ttsAudioChunks = [];
     let ttsPlaybackAudio = null;
     let ttsPlayQueue = [];
@@ -276,12 +284,12 @@
     let ttsStreamActive = false;
 
     function setStatus(text, isTyping = false) {
-      statusEl.textContent = "状态：" + text;
+      statusEl.textContent = "Status: " + text;
       statusEl.classList.toggle("typing", isTyping);
     }
 
     function nowTime() {
-      return new Date().toLocaleTimeString("zh-CN", { hour12: false });
+      return new Date().toLocaleTimeString("en-US", { hour12: false });
     }
 
     function scrollToBottom() {
@@ -335,7 +343,7 @@
           return;
         }
         if (!ttsIsPlaying && !ttsPlayQueue.length && ttsStreamActive) {
-          setStatus("AI 语音播报中…");
+          setStatus("AI voice playback…");
         }
         return;
       }
@@ -350,9 +358,9 @@
         ttsIsPlaying = false;
         ttsPlaybackAudio = null;
         if (ttsPlayQueue.length) {
-          setStatus("AI 语音播报中…");
+          setStatus("AI voice playback…");
         } else if (!ttsStreamActive) {
-          setStatus("TTS 播放完成");
+          setStatus("TTS playback finished");
         }
         drainTtsPlayQueue();
       };
@@ -365,7 +373,7 @@
       audio.play().catch(() => {
         ttsIsPlaying = false;
         ttsPlaybackAudio = null;
-        setStatus("自动播放被阻止，请先点击页面再提问");
+        setStatus("Autoplay blocked — click the page first, then ask again");
       });
     }
 
@@ -388,24 +396,27 @@
         const msg = JSON.parse(event.data);
         if (msg.type === "session" && msg.sessionId) {
           ttsSessionId = msg.sessionId;
+          ttsWantedSessionId = msg.sessionId;
+          clearTtsReconnectTimer();
+          ttsReconnectAttempt = 0;
           return;
         }
         if (msg.type === "tts_stream_started") {
           ttsStreamActive = true;
-          setStatus("AI 语音播报中…");
+          setStatus("AI voice playback…");
           return;
         }
         if (msg.type === "tts_stream_ended") {
           ttsStreamActive = false;
           if (!ttsIsPlaying && !ttsPlayQueue.length) {
-            setStatus("AI 语音播报完成");
+            setStatus("AI voice playback complete");
           }
           return;
         }
         if (msg.type === "tts_started") {
           resetTtsSentenceBuffer();
           if (!ttsStreamActive) {
-            setStatus("TTS 合成中…");
+            setStatus("TTS synthesizing…");
           }
           return;
         }
@@ -415,15 +426,111 @@
         }
         if (msg.type === "tts_error") {
           ttsStreamActive = false;
-          setStatus("TTS 错误：" + (msg.message || "未知"));
+          setStatus("TTS error: " + (msg.message || "unknown"));
           return;
         }
         if (msg.type === "tts_closed") {
           ttsStreamActive = false;
-          setStatus("TTS 连接已关闭");
+          setStatus("TTS connection closed, reconnecting…");
         }
       } catch {
         // ignore
+      }
+    }
+
+    function clearTtsReconnectTimer() {
+      if (ttsReconnectTimer) {
+        clearTimeout(ttsReconnectTimer);
+        ttsReconnectTimer = null;
+      }
+    }
+
+    function getTtsWsUrl() {
+      const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+      const base =
+        protocol + "://" + window.location.host + "/speech/tts/ws";
+      if (ttsWantedSessionId) {
+        return (
+          base + "?sessionId=" + encodeURIComponent(ttsWantedSessionId)
+        );
+      }
+      return base;
+    }
+
+    function onTtsDisconnected() {
+      if (ttsWs) {
+        ttsWs.onclose = null;
+        ttsWs.onerror = null;
+        ttsWs.onmessage = null;
+      }
+      ttsWs = null;
+      ttsSessionId = null;
+      ttsStreamActive = false;
+      resetTtsSentenceBuffer();
+    }
+
+    function scheduleTtsReconnect(reason) {
+      if (ttsSuppressReconnect || ttsReconnectTimer || ttsConnectPromise) {
+        return;
+      }
+
+      const delay = Math.min(
+        TTS_RECONNECT_BASE_MS * Math.pow(2, ttsReconnectAttempt),
+        TTS_RECONNECT_MAX_MS,
+      );
+      ttsReconnectAttempt += 1;
+      const seconds = Math.max(1, Math.round(delay / 1000));
+      setStatus("TTS disconnected (" + reason + "), retrying in " + seconds + "s…");
+
+      ttsReconnectTimer = setTimeout(() => {
+        ttsReconnectTimer = null;
+        ensureTtsConnection()
+          .then((id) => {
+            setStatus("TTS reconnected " + id.slice(0, 8) + "…");
+          })
+          .catch(() => {
+            scheduleTtsReconnect("reconnect failed");
+          });
+      }, delay);
+    }
+
+    function attachTtsWsHandlers(ws, pending) {
+      ws.onmessage = (event) => {
+        handleTtsWsMessage(event);
+        if (pending && ttsSessionId) {
+          clearTimeout(pending.timeoutId);
+          pending.resolve(ttsSessionId);
+        }
+      };
+
+      ws.onerror = () => {
+        if (pending) {
+          clearTimeout(pending.timeoutId);
+          pending.reject(new Error("TTS WebSocket connection failed"));
+        }
+      };
+
+      ws.onclose = () => {
+        const wasConnected = Boolean(ttsWantedSessionId);
+        onTtsDisconnected();
+        if (!ttsSuppressReconnect && wasConnected) {
+          scheduleTtsReconnect("connection closed");
+        }
+      };
+    }
+
+    function openTtsWebSocket(pending) {
+      clearTtsReconnectTimer();
+      const ws = new WebSocket(getTtsWsUrl());
+      ws.binaryType = "arraybuffer";
+      ttsWs = ws;
+      attachTtsWsHandlers(ws, pending);
+
+      if (pending) {
+        pending.timeoutId = setTimeout(() => {
+          ws.close();
+          pending.reject(new Error("TTS WebSocket connection timed out"));
+        }, TTS_CONNECT_TIMEOUT_MS);
       }
     }
 
@@ -437,39 +544,28 @@
       }
 
       ttsConnectPromise = new Promise((resolve, reject) => {
-        const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-        const wsUrl = protocol + "://" + window.location.host + "/speech/tts/ws";
-        const ws = new WebSocket(wsUrl);
-        ws.binaryType = "arraybuffer";
-        ttsWs = ws;
-
-        const timeoutId = setTimeout(() => {
-          ws.close();
-          reject(new Error("TTS WebSocket 连接超时"));
-        }, 10000);
-
-        ws.onmessage = (event) => {
-          handleTtsWsMessage(event);
-          if (ttsSessionId) {
-            clearTimeout(timeoutId);
-            resolve(ttsSessionId);
-          }
-        };
-
-        ws.onerror = () => {
-          clearTimeout(timeoutId);
-          reject(new Error("TTS WebSocket 连接失败"));
-        };
-
-        ws.onclose = () => {
-          ttsWs = null;
-          ttsSessionId = null;
-        };
+        const pending = { resolve, reject, timeoutId: null };
+        openTtsWebSocket(pending);
       }).finally(() => {
         ttsConnectPromise = null;
       });
 
       return ttsConnectPromise;
+    }
+
+    function tryReconnectTtsIfNeeded() {
+      if (ttsSuppressReconnect) return;
+      if (ttsWs && ttsWs.readyState === WebSocket.OPEN && ttsSessionId) return;
+      if (ttsConnectPromise) return;
+      clearTtsReconnectTimer();
+      ttsReconnectAttempt = 0;
+      ensureTtsConnection()
+        .then((id) => {
+          setStatus("TTS reconnected " + id.slice(0, 8) + "…");
+        })
+        .catch(() => {
+          scheduleTtsReconnect("network restored");
+        });
     }
 
     function consumeSseBuffer(buffer) {
@@ -517,9 +613,9 @@
         MAX_RECORD_MS - (Date.now() - recordingStartedAt),
       );
       setStatus(
-        "录音中… 剩余 " +
+        "Recording… " +
           formatRemaining(remaining) +
-          "，点击「停止录音」完成提问",
+          " left — tap Stop recording to finish",
       );
     }
 
@@ -533,7 +629,7 @@
 
     function setRecordingUI(recording) {
       isRecording = recording;
-      recordBtn.textContent = recording ? "停止录音" : "语音输入";
+      recordBtn.textContent = recording ? "Stop recording" : "Voice input";
       recordBtn.classList.toggle("btn-primary", recording);
       if (recording) {
         sendBtn.disabled = true;
@@ -547,9 +643,9 @@
       clearRecordingTimers();
       mediaRecorder.stop();
       if (stoppedByMaxDuration) {
-        setStatus("已达 2 分钟上限，正在识别...");
+        setStatus("2-minute limit reached, transcribing...");
       } else {
-        setStatus("已停止录音，正在识别...");
+        setStatus("Recording stopped, transcribing...");
       }
     }
 
@@ -563,7 +659,7 @@
       });
       if (!response.ok) {
         const text = await response.text();
-        throw new Error(text || "ASR 请求失败");
+        throw new Error(text || "ASR request failed");
       }
       const data = await response.json();
       return data.text || "";
@@ -572,7 +668,7 @@
     async function streamAiReply(query, history) {
       closeActiveStream();
 
-      const aiMsg = appendMessage("assistant", "", "AI 正在回答...");
+      const aiMsg = appendMessage("assistant", "", "AI is replying...");
       activeAssistantContentEl = aiMsg.content;
       activeAssistantMetaEl = aiMsg.meta;
 
@@ -583,7 +679,7 @@
       try {
         ttsIdForChat = await ensureTtsConnection();
       } catch (error) {
-        setStatus("TTS 未连接，仅文字回复：" + (error.message || String(error)));
+        setStatus("TTS not connected, text only: " + (error.message || String(error)));
       }
 
       const payload = { query, history };
@@ -599,7 +695,7 @@
       });
 
       if (!response.ok) {
-        throw new Error((await response.text()) || "AI 流式请求失败");
+        throw new Error((await response.text()) || "AI stream request failed");
       }
 
       const reader = response.body.getReader();
@@ -615,7 +711,7 @@
         buffer = parsed.rest;
         if (parsed.aiDelta) {
           aiResult += parsed.aiDelta;
-          activeAssistantContentEl.textContent = aiResult || "（空结果）";
+          activeAssistantContentEl.textContent = aiResult || "(empty result)";
           scrollToBottom();
         }
       }
@@ -623,14 +719,14 @@
       const tail = consumeSseBuffer(buffer + "\n\n");
       if (tail.aiDelta) {
         aiResult += tail.aiDelta;
-        activeAssistantContentEl.textContent = aiResult || "（空结果）";
+        activeAssistantContentEl.textContent = aiResult || "(empty result)";
       }
 
       if (activeFetchAbort === abort) {
         activeFetchAbort = null;
       }
       if (activeAssistantMetaEl) {
-        activeAssistantMetaEl.textContent = "AI 回复完成 " + nowTime();
+        activeAssistantMetaEl.textContent = "AI reply complete " + nowTime();
       }
       return aiResult;
     }
@@ -638,14 +734,14 @@
     async function askWithQuery(query, source) {
       const trimmed = query.trim();
       if (!trimmed) {
-        setStatus("请输入问题");
+        setStatus("Please enter a question");
         return;
       }
 
       appendMessage("user", trimmed, source + " " + nowTime());
       promptInput.value = "";
       setComposerBusy(true);
-      setStatus("AI 正在流式回答...", true);
+      setStatus("AI streaming reply...", true);
 
       const historyForApi = chatHistory.map((item) => ({
         role: item.role,
@@ -657,30 +753,30 @@
         const aiResult = await streamAiReply(trimmed, historyForApi);
         chatHistory.push({
           role: "assistant",
-          content: aiResult || "（空结果）",
+          content: aiResult || "(empty result)",
         });
-        setStatus("对话完成");
+        setStatus("Conversation complete");
       } catch (error) {
         chatHistory.pop();
         appendMessage(
           "assistant",
-          "处理失败：" + (error.message || String(error)),
-          "异常 " + nowTime(),
+          "Processing failed: " + (error.message || String(error)),
+          "Error " + nowTime(),
         );
-        setStatus("处理失败");
+        setStatus("Processing failed");
       } finally {
         setComposerBusy(false);
       }
     }
 
     sendBtn.addEventListener("click", async () => {
-      await askWithQuery(promptInput.value, "文字提问");
+      await askWithQuery(promptInput.value, "Text question");
     });
 
     promptInput.addEventListener("keydown", async (event) => {
       if (event.key === "Enter" && !event.shiftKey) {
         event.preventDefault();
-        await askWithQuery(promptInput.value, "文字提问");
+        await askWithQuery(promptInput.value, "Text question");
       }
     });
 
@@ -723,28 +819,28 @@
               type: mediaRecorder.mimeType || "audio/webm",
             });
             if (!blob.size) {
-              throw new Error("录音数据为空，请至少录制 1 秒再上传");
+              throw new Error("Recording is empty — record at least 1 second before uploading");
             }
 
             setStatus(
-              wasMaxDuration ? "已达 2 分钟上限，语音识别中..." : "语音识别中...",
+              wasMaxDuration ? "2-minute limit reached, transcribing speech..." : "Transcribing speech...",
             );
             const recognized = (await uploadAndRecognize(blob)).trim();
             promptInput.value = recognized;
 
             if (!recognized) {
-              setStatus("识别为空，请重新录音");
+              setStatus("Transcription empty — please record again");
               return;
             }
 
-            await askWithQuery(recognized, "语音提问");
+            await askWithQuery(recognized, "Voice question");
           } catch (error) {
             appendMessage(
               "assistant",
-              "语音处理失败：" + (error.message || String(error)),
-              "异常 " + nowTime(),
+              "Voice processing failed: " + (error.message || String(error)),
+              "Error " + nowTime(),
             );
-            setStatus("语音处理失败");
+            setStatus("Voice processing failed");
           } finally {
             if (activeRecordStream) {
               activeRecordStream.getTracks().forEach((t) => t.stop());
@@ -766,22 +862,37 @@
       } catch (error) {
         appendMessage(
           "assistant",
-          "无法开始录音：" + (error.message || String(error)),
-          "异常 " + nowTime(),
+          "Cannot start recording: " + (error.message || String(error)),
+          "Error " + nowTime(),
         );
-        setStatus("无法开始录音");
+        setStatus("Cannot start recording");
         clearRecordingTimers();
         setRecordingUI(false);
         setComposerBusy(false);
       }
     });
 
+    window.addEventListener("online", tryReconnectTtsIfNeeded);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        tryReconnectTtsIfNeeded();
+      }
+    });
+    window.addEventListener("beforeunload", () => {
+      ttsSuppressReconnect = true;
+      clearTtsReconnectTimer();
+      if (ttsWs) {
+        ttsWs.close();
+      }
+    });
+
     ensureTtsConnection()
       .then((id) => {
-        setStatus("TTS 已连接 " + id.slice(0, 8) + "…");
+        setStatus("TTS connected " + id.slice(0, 8) + "…");
       })
       .catch((error) => {
-        setStatus("TTS 未连接：" + (error.message || String(error)));
+        setStatus("TTS not connected: " + (error.message || String(error)));
+        scheduleTtsReconnect("initial connection failed");
       });
   </script>
 </body>

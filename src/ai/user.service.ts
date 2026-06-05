@@ -14,7 +14,7 @@ export class UserService {
       '001',
       {
         id: '001',
-        name: '赵云',
+        name: 'Zhao Yun',
         email: 'zhaoyun@example.com',
         role: 'admin',
       },
@@ -23,7 +23,7 @@ export class UserService {
       '002',
       {
         id: '002',
-        name: '诸葛亮',
+        name: 'Zhuge Liang',
         email: 'zhugeliang@example.com',
         role: 'manager',
       },
@@ -32,7 +32,7 @@ export class UserService {
       '003',
       {
         id: '003',
-        name: '关羽',
+        name: 'Guan Yu',
         email: 'guanyu@example.com',
         role: 'user',
       },
@@ -41,7 +41,7 @@ export class UserService {
       '004',
       {
         id: '004',
-        name: '张飞',
+        name: 'Zhang Fei',
         email: 'zhangfei@example.com',
         role: 'user',
       },
@@ -50,7 +50,7 @@ export class UserService {
       '005',
       {
         id: '005',
-        name: '刘备',
+        name: 'Liu Bei',
         email: 'liubei@example.com',
         role: 'owner',
       },
@@ -59,7 +59,7 @@ export class UserService {
       '006',
       {
         id: '006',
-        name: '黄忠',
+        name: 'Huang Zhong',
         email: 'huangzhong@example.com',
         role: 'user',
       },

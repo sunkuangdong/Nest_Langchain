@@ -16,7 +16,7 @@ import { UsersModule } from '../users/users.module';
     {
       provide: AI_PROMPT,
       useFactory: () =>
-        PromptTemplate.fromTemplate('请回答以下问题：\n\n{query}'),
+        PromptTemplate.fromTemplate('Please answer the following question:\n\n{query}'),
     },
     {
       provide: AI_CHAIN,
