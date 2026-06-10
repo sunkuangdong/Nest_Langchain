@@ -1,4 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { toBaseMessages, toUIMessageStream } from '@ai-sdk/langchain';
+import type { UIMessage } from 'ai';
+import { createAgent, type ReactAgent } from 'langchain';
 import { ChatOpenAI } from '@langchain/openai';
 import { PromptTemplate } from '@langchain/core/prompts';
 import type { Runnable } from '@langchain/core/runnables';
@@ -228,6 +231,7 @@ function parseSendMailArgs(rawArgs: unknown): SendMailArgs {
 @Injectable()
 export class AiService {
   private readonly modelWithTools: Runnable<BaseMessage[], AIMessage>;
+  private readonly aguiAgent: ReactAgent;
 
   constructor(
     @Inject(AI_CHAIN)
@@ -275,6 +279,27 @@ export class AiService {
       this.dbUsersCrudTool,
       this.cronJobTool,
     ]);
+    this.aguiAgent = createAgent({
+      model: this.model,
+      tools: [
+        this.queryUserTool,
+        this.sendMailTool,
+        this.webSearchTool,
+        this.dbUsersCrudTool,
+        this.cronJobTool,
+      ],
+      systemPrompt: AGENT_SYSTEM_PROMPT,
+    });
+  }
+
+  /** AGUI / Data Stream: LangChain agent → AI SDK UIMessage stream. */
+  async stream(messages: UIMessage[]) {
+    const lcMessages = await toBaseMessages(messages);
+    const lgStream = await this.aguiAgent.stream(
+      { messages: lcMessages },
+      { streamMode: ['messages', 'values'], recursionLimit: 12 },
+    );
+    return toUIMessageStream(lgStream);
   }
 
   private buildAgentMessages(

@@ -1,12 +1,16 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
   MessageEvent,
   Post,
   Query,
+  Res,
   Sse,
 } from '@nestjs/common';
+import type { Response } from 'express';
+import { pipeUIMessageStreamToResponse, type UIMessage } from 'ai';
 import { Observable, from } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { AiService, type ChatHistoryItem } from './ai.service';
@@ -59,6 +63,18 @@ export class AiController {
     const history = parseHistoryJson(historyJson);
     const answer = await this.aiService.runChain(query, history);
     return { answer };
+  }
+
+  @Post('chat')
+  async postChat(
+    @Body() body: { messages?: UIMessage[] },
+    @Res({ passthrough: false }) res: Response,
+  ): Promise<void> {
+    if (!body?.messages || !Array.isArray(body.messages)) {
+      throw new BadRequestException('Invalid JSON');
+    }
+    const stream = await this.aiService.stream(body.messages);
+    pipeUIMessageStreamToResponse({ response: res, stream });
   }
 
   /** Dev: run JobAgentService once (same agent loop as scheduled job execution). */
