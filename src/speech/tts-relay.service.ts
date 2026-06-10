@@ -47,14 +47,13 @@ export class TtsRelayService implements OnModuleInit, OnModuleDestroy {
 
   onModuleInit(): void {
     // Avoid duplicate listeners on hot reload (would synthesize/play each sentence twice).
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+
     this.eventEmitter.off(AI_TTS_STREAM_EVENT, this.onAiTtsStreamBound);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+
     this.eventEmitter.on(AI_TTS_STREAM_EVENT, this.onAiTtsStreamBound);
   }
 
   onModuleDestroy(): void {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     this.eventEmitter.off(AI_TTS_STREAM_EVENT, this.onAiTtsStreamBound);
     for (const session of this.sessions.values()) {
       this.closeSession(session.sessionId, 'module destroy');

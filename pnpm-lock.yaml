@@ -10,13 +10,13 @@ importers:
     dependencies:
       '@ai-sdk/langchain':
         specifier: ^2.0.207
-        version: 2.0.207(@langchain/core@1.1.46(@opentelemetry/api@1.9.1)(openai@6.38.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0))(@langchain/langgraph@1.4.0(@langchain/core@1.1.46(@opentelemetry/api@1.9.1)(openai@6.38.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0))(zod@4.4.3))(zod@4.4.3)
+        version: 2.0.207(@langchain/core@1.1.46(@opentelemetry/api@1.9.1)(openai@6.38.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0))(@langchain/langgraph@1.4.0(@langchain/core@1.1.46(@opentelemetry/api@1.9.1)(openai@6.38.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0))(react@19.2.7)(zod@4.4.3))(zod@4.4.3)
+      '@ai-sdk/react':
+        specifier: ^3.0.202
+        version: 3.0.202(react@19.2.7)(zod@4.4.3)
       '@langchain/core':
         specifier: ^1.1.46
         version: 1.1.46(@opentelemetry/api@1.9.1)(openai@6.38.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0)
-      '@langchain/langgraph':
-        specifier: ^1.4.0
-        version: 1.4.0(@langchain/core@1.1.46(@opentelemetry/api@1.9.1)(openai@6.38.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0))(zod@4.4.3)
       '@langchain/openai':
         specifier: ^1.4.5
         version: 1.4.5(@langchain/core@1.1.46(@opentelemetry/api@1.9.1)(openai@6.38.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0))(ws@8.21.0)
@@ -67,7 +67,7 @@ importers:
         version: 17.4.2
       langchain:
         specifier: ^1.4.4
-        version: 1.4.4(@langchain/core@1.1.46(@opentelemetry/api@1.9.1)(openai@6.38.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0))(@opentelemetry/api@1.9.1)(openai@6.38.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0)
+        version: 1.4.4(@langchain/core@1.1.46(@opentelemetry/api@1.9.1)(openai@6.38.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0))(@opentelemetry/api@1.9.1)(openai@6.38.0(ws@8.21.0)(zod@4.4.3))(react@19.2.7)(ws@8.21.0)
       mysql2:
         specifier: ^3.22.3
         version: 3.22.3(@types/node@24.12.4)
@@ -199,6 +199,12 @@ packages:
   '@ai-sdk/provider@3.0.10':
     resolution: {integrity: sha512-Q3BZ27qfpYqnCYGvE3vt+Qi6LGOF9R5Nmzn+9JoM1lCRsD9mYaIhfJLkSunN48nfGXJ6n+XNV0J/XVpqGQl7Dw==}
     engines: {node: '>=18'}
+
+  '@ai-sdk/react@3.0.202':
+    resolution: {integrity: sha512-iNt8rd12mTgYnwNeNcGIsc887qzw9Q3sSWGRdBRwaAVe1/glzYqbotigFlY63i3IRKRp0UuX/BcFN8YGIYDVYQ==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      react: ^18 || ~19.0.1 || ~19.1.2 || ^19.2.1
 
   '@angular-devkit/core@19.2.24':
     resolution: {integrity: sha512-Kd49warf6U/EyWe5BszF/eebN3zQ3bk7tgfEljAw8q/rX95UUtriJubWvp6pgzHfzBA4jwq8f+QiNZB8eBEXPA==}
@@ -1994,6 +2000,10 @@ packages:
   depd@2.0.0:
     resolution: {integrity: sha512-g7nH6P6dyDioJogAAGprGpCtVImJhpPk/roCzdb3fIh61/s/nPsfR6onyMwkCAR/OlC3yBC0lESvUoQEAssIrw==}
     engines: {node: '>= 0.8'}
+
+  dequal@2.0.3:
+    resolution: {integrity: sha512-0je+qPKHEMohvfRTCEo3CrPG6cAzAYgmzKyxRiYSSDkS6eGJdyVJm7WaYA5ECaAD9wLB2T4EEeymA5aFVcYXCA==}
+    engines: {node: '>=6'}
 
   detect-indent@6.1.0:
     resolution: {integrity: sha512-reYkTUJAZb9gUuZ2RvVCNhVHdg62RHnJ7WJl8ftMi4diZ6NWlciOzQN88pUhSELEwflJht4oQDv0F0BMlwaYtA==}
@@ -3815,6 +3825,10 @@ packages:
   react-is@19.2.6:
     resolution: {integrity: sha512-XjBR15BhXuylgWGuslhDKqlSayuqvqBX91BP8pauG8kd1zY8kotkNWbXksTCNRarse4kuGbe2kIY05ARtwNIvw==}
 
+  react@19.2.7:
+    resolution: {integrity: sha512-HNe9WslTbXmFK8o8cmwgAeJFSBvt1bPdHCVKtaaV+WlAN36mpT4hcRpwbf3fY56ar2oIXzsBpOAiIRHAdY0OlQ==}
+    engines: {node: '>=0.10.0'}
+
   readable-stream@3.6.2:
     resolution: {integrity: sha512-9u/sniCrY3D5WdsERHzHE4G2YCXqoG5FTHUiCC4SIbr6XcLZBY05ya9EKjYek9O5xOAwjGq+1JdGBAS7Q9ScoA==}
     engines: {node: '>= 6'}
@@ -4079,6 +4093,11 @@ packages:
     engines: {node: '>=16'}
     hasBin: true
 
+  swr@2.4.1:
+    resolution: {integrity: sha512-2CC6CiKQtEwaEeNiqWTAw9PGykW8SR5zZX8MZk6TeAvEAnVS7Visz8WzphqgtQ8v2xz/4Q5K+j+SeMaKXeeQIA==}
+    peerDependencies:
+      react: ^16.11.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
   symbol-observable@4.0.0:
     resolution: {integrity: sha512-b19dMThMV4HVFynSAM1++gBHAbk2Tc/osgLIBZMKsyqh34jb2e8Os7T6ZW/Bt3pJFdBTd2JwAnAAEQV7rSNvcQ==}
     engines: {node: '>=0.10'}
@@ -4154,6 +4173,10 @@ packages:
   test-exclude@6.0.0:
     resolution: {integrity: sha512-cAGWPIyOHU6zlmg88jwm7VRyXnMN7iV68OGAbYDk/Mh/xC/pzVPlQtY6ngoIH/5/tciuhGfvESU8GrHrcxD56w==}
     engines: {node: '>=8'}
+
+  throttleit@2.1.0:
+    resolution: {integrity: sha512-nt6AMGKW1p/70DF/hGBdJB57B8Tspmbp5gfJ8ilhLnt7kkr2ye7hzD6NVG8GGErk2HWF34igrL2CXmNIkzKqKw==}
+    engines: {node: '>=18'}
 
   tinyglobby@0.2.16:
     resolution: {integrity: sha512-pn99VhoACYR8nFHhxqix+uvsbXineAasWm5ojXoN8xEwK5Kd3/TrhNn1wByuD52UxWRLy8pu+kRMniEi6Eq9Zg==}
@@ -4386,6 +4409,11 @@ packages:
   uri-js@4.4.1:
     resolution: {integrity: sha512-7rKUyy33Q1yc98pQ1DAmLtwX109F7TIfWlW1Ydo8Wl1ii1SeHieeh0HHfPeL2fMXK6z0s8ecKs9frCuLJvndBg==}
 
+  use-sync-external-store@1.6.0:
+    resolution: {integrity: sha512-Pp6GSwGP/NrPIrxVFAIkOQeyw8lFenOHijQWkUTrDvrF4ALqylP2C/KCkeS9dpUM3KvYRQhna5vt7IL95+ZQ9w==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
   util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
 
@@ -4566,12 +4594,12 @@ snapshots:
       '@vercel/oidc': 3.2.0
       zod: 4.4.3
 
-  '@ai-sdk/langchain@2.0.207(@langchain/core@1.1.46(@opentelemetry/api@1.9.1)(openai@6.38.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0))(@langchain/langgraph@1.4.0(@langchain/core@1.1.46(@opentelemetry/api@1.9.1)(openai@6.38.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0))(zod@4.4.3))(zod@4.4.3)':
+  '@ai-sdk/langchain@2.0.207(@langchain/core@1.1.46(@opentelemetry/api@1.9.1)(openai@6.38.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0))(@langchain/langgraph@1.4.0(@langchain/core@1.1.46(@opentelemetry/api@1.9.1)(openai@6.38.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0))(react@19.2.7)(zod@4.4.3))(zod@4.4.3)':
     dependencies:
       '@langchain/core': 1.1.46(@opentelemetry/api@1.9.1)(openai@6.38.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0)
       ai: 6.0.200(zod@4.4.3)
     optionalDependencies:
-      '@langchain/langgraph': 1.4.0(@langchain/core@1.1.46(@opentelemetry/api@1.9.1)(openai@6.38.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0))(zod@4.4.3)
+      '@langchain/langgraph': 1.4.0(@langchain/core@1.1.46(@opentelemetry/api@1.9.1)(openai@6.38.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0))(react@19.2.7)(zod@4.4.3)
     transitivePeerDependencies:
       - zod
 
@@ -4585,6 +4613,16 @@ snapshots:
   '@ai-sdk/provider@3.0.10':
     dependencies:
       json-schema: 0.4.0
+
+  '@ai-sdk/react@3.0.202(react@19.2.7)(zod@4.4.3)':
+    dependencies:
+      '@ai-sdk/provider-utils': 4.0.27(zod@4.4.3)
+      ai: 6.0.200(zod@4.4.3)
+      react: 19.2.7
+      swr: 2.4.1(react@19.2.7)
+      throttleit: 2.1.0
+    transitivePeerDependencies:
+      - zod
 
   '@angular-devkit/core@19.2.24(chokidar@4.0.3)':
     dependencies:
@@ -5337,7 +5375,7 @@ snapshots:
       '@langchain/core': 1.1.46(@opentelemetry/api@1.9.1)(openai@6.38.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0)
       uuid: 14.0.0
 
-  '@langchain/langgraph-sdk@1.9.20(@langchain/core@1.1.46(@opentelemetry/api@1.9.1)(openai@6.38.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0))':
+  '@langchain/langgraph-sdk@1.9.20(@langchain/core@1.1.46(@opentelemetry/api@1.9.1)(openai@6.38.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0))(react@19.2.7)':
     dependencies:
       '@langchain/core': 1.1.46(@opentelemetry/api@1.9.1)(openai@6.38.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0)
       '@langchain/protocol': 0.0.16
@@ -5345,12 +5383,14 @@ snapshots:
       p-queue: 9.3.0
       p-retry: 7.1.1
       uuid: 14.0.0
+    optionalDependencies:
+      react: 19.2.7
 
-  '@langchain/langgraph@1.4.0(@langchain/core@1.1.46(@opentelemetry/api@1.9.1)(openai@6.38.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0))(zod@4.4.3)':
+  '@langchain/langgraph@1.4.0(@langchain/core@1.1.46(@opentelemetry/api@1.9.1)(openai@6.38.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0))(react@19.2.7)(zod@4.4.3)':
     dependencies:
       '@langchain/core': 1.1.46(@opentelemetry/api@1.9.1)(openai@6.38.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0)
       '@langchain/langgraph-checkpoint': 1.1.0(@langchain/core@1.1.46(@opentelemetry/api@1.9.1)(openai@6.38.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0))
-      '@langchain/langgraph-sdk': 1.9.20(@langchain/core@1.1.46(@opentelemetry/api@1.9.1)(openai@6.38.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0))
+      '@langchain/langgraph-sdk': 1.9.20(@langchain/core@1.1.46(@opentelemetry/api@1.9.1)(openai@6.38.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0))(react@19.2.7)
       '@langchain/protocol': 0.0.16
       '@standard-schema/spec': 1.1.0
       uuid: 14.0.0
@@ -6636,6 +6676,8 @@ snapshots:
 
   depd@2.0.0: {}
 
+  dequal@2.0.3: {}
+
   detect-indent@6.1.0:
     optional: true
 
@@ -7828,10 +7870,10 @@ snapshots:
     dependencies:
       json-buffer: 3.0.1
 
-  langchain@1.4.4(@langchain/core@1.1.46(@opentelemetry/api@1.9.1)(openai@6.38.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0))(@opentelemetry/api@1.9.1)(openai@6.38.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0):
+  langchain@1.4.4(@langchain/core@1.1.46(@opentelemetry/api@1.9.1)(openai@6.38.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0))(@opentelemetry/api@1.9.1)(openai@6.38.0(ws@8.21.0)(zod@4.4.3))(react@19.2.7)(ws@8.21.0):
     dependencies:
       '@langchain/core': 1.1.46(@opentelemetry/api@1.9.1)(openai@6.38.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0)
-      '@langchain/langgraph': 1.4.0(@langchain/core@1.1.46(@opentelemetry/api@1.9.1)(openai@6.38.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0))(zod@4.4.3)
+      '@langchain/langgraph': 1.4.0(@langchain/core@1.1.46(@opentelemetry/api@1.9.1)(openai@6.38.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0))(react@19.2.7)(zod@4.4.3)
       '@langchain/langgraph-checkpoint': 1.1.0(@langchain/core@1.1.46(@opentelemetry/api@1.9.1)(openai@6.38.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0))
       langsmith: 0.7.1(@opentelemetry/api@1.9.1)(openai@6.38.0(ws@8.21.0)(zod@4.4.3))(ws@8.21.0)
       zod: 4.4.3
@@ -9147,6 +9189,8 @@ snapshots:
 
   react-is@19.2.6: {}
 
+  react@19.2.7: {}
+
   readable-stream@3.6.2:
     dependencies:
       inherits: 2.0.4
@@ -9443,6 +9487,12 @@ snapshots:
       sax: 1.6.0
     optional: true
 
+  swr@2.4.1(react@19.2.7):
+    dependencies:
+      dequal: 2.0.3
+      react: 19.2.7
+      use-sync-external-store: 1.6.0(react@19.2.7)
+
   symbol-observable@4.0.0: {}
 
   synckit@0.11.12:
@@ -9512,6 +9562,8 @@ snapshots:
       '@istanbuljs/schema': 0.1.6
       glob: 7.2.3
       minimatch: 3.1.5
+
+  throttleit@2.1.0: {}
 
   tinyglobby@0.2.16:
     dependencies:
@@ -9718,6 +9770,10 @@ snapshots:
   uri-js@4.4.1:
     dependencies:
       punycode: 2.3.1
+
+  use-sync-external-store@1.6.0(react@19.2.7):
+    dependencies:
+      react: 19.2.7
 
   util-deprecate@1.0.2: {}
 

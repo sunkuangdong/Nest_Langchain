@@ -279,15 +279,18 @@ export class AiService {
       this.dbUsersCrudTool,
       this.cronJobTool,
     ]);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
     this.aguiAgent = createAgent({
-      model: this.model,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      model: this.model as any,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       tools: [
         this.queryUserTool,
         this.sendMailTool,
         this.webSearchTool,
         this.dbUsersCrudTool,
         this.cronJobTool,
-      ],
+      ] as any,
       systemPrompt: AGENT_SYSTEM_PROMPT,
     });
   }
@@ -295,11 +298,13 @@ export class AiService {
   /** AGUI / Data Stream: LangChain agent → AI SDK UIMessage stream. */
   async stream(messages: UIMessage[]) {
     const lcMessages = await toBaseMessages(messages);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     const lgStream = await this.aguiAgent.stream(
       { messages: lcMessages },
       { streamMode: ['messages', 'values'], recursionLimit: 12 },
     );
-    return toUIMessageStream(lgStream);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    return toUIMessageStream(lgStream as any);
   }
 
   private buildAgentMessages(
@@ -417,7 +422,6 @@ export class AiService {
     let ttsFedLength = 0;
 
     const emitTtsEvent = (event: AiTtsStreamEvent) => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       this.eventEmitter.emit(AI_TTS_STREAM_EVENT, event);
     };
     const flushTts = (forceFlush: boolean) => {

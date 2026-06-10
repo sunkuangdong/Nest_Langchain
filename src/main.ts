@@ -6,6 +6,13 @@ import { WebSocketServer } from 'ws';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  // CORS
+  app.enableCors({
+    origin: '*',
+    credentials: true,
+  });
+  // CORS end
+
   const ttsRelay = app.get(TtsRelayService);
   const httpServer = app.getHttpServer() as HttpServer;
 
