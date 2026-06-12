@@ -1,7 +1,7 @@
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport, type UIMessage } from 'ai'
 import { useMemo, useState } from 'react'
-// import { MessagePart } from './components/ToolPanels'
+import { MessagePart } from './components/ToolPanels'
 import './App.css'
 
 const API_BASE = 'http://localhost:3000'
@@ -24,18 +24,18 @@ export default function App() {
 
   const busy = status === 'submitted' || status === 'streaming'
   const canSend = status === 'ready' && input.trim().length > 0
-  // const lastAssistant = messages.filter((m) => m.role === 'assistant').at(-1)
+  const lastAssistant = messages.filter((m) => m.role === 'assistant').at(-1)
 
   return (
     <div className="chat-app">
       <header className="chat-header">
         <div>
           <h1>agui</h1>
-          <p className="chat-sub">后端：{chatUrl}</p>
+          <p className="chat-sub">Backend: {chatUrl}</p>
         </div>
         {busy && (
           <button type="button" className="btn-stop" onClick={() => stop()}>
-            停止
+            Stop
           </button>
         )}
       </header>
@@ -43,14 +43,14 @@ export default function App() {
       <div className="chat-messages" role="log" aria-live="polite">
         {messages.length === 0 && (
           <p className="chat-empty">
-            输入问题开始对话
+            Type a message to start chatting
           </p>
         )}
         {messages.map((message) => {
-          // const textPartIndices = message.parts
-          //   .map((p, i) => (p.type === 'text' ? i : -1))
-          //   .filter((i) => i >= 0)
-          // const lastTextPartIdx = textPartIndices[textPartIndices.length - 1]
+          const textPartIndices = message.parts
+            .map((p, i) => (p.type === 'text' ? i : -1))
+            .filter((i) => i >= 0)
+          const lastTextPartIdx = textPartIndices[textPartIndices.length - 1]
 
           return (
             <article
@@ -58,10 +58,10 @@ export default function App() {
               className={`chat-bubble chat-bubble--${message.role}`}
             >
               <span className="chat-role">
-                {message.role === 'user' ? '你' : '助手'}
+                {message.role === 'user' ? 'You' : 'Assistant'}
               </span>
               <div className="chat-body">
-                {/* {message.parts.map((part, index) => (
+                {message.parts.map((part, index) => (
                   <MessagePart
                     key={`${message.id}-p-${index}`}
                     part={part}
@@ -73,7 +73,7 @@ export default function App() {
                       busy
                     }
                   />
-                ))} */}
+                ))}
               </div>
             </article>
           )
@@ -84,7 +84,7 @@ export default function App() {
         <div className="chat-error" role="alert">
           <span>{error.message}</span>
           <button type="button" onClick={() => clearError()}>
-            关闭
+            Close
           </button>
         </div>
       )}
@@ -111,20 +111,20 @@ export default function App() {
               }
             }
           }}
-          placeholder="输入消息，Enter 发送，Shift+Enter 换行"
+          placeholder="Type a message, Enter to send, Shift+Enter for new line"
           rows={3}
           disabled={status !== 'ready'}
-          aria-label="消息输入"
+          aria-label="Message input"
         />
         <div className="chat-actions">
           <span className="chat-status">
-            {status === 'ready' && '就绪'}
-            {status === 'submitted' && '已发送…'}
-            {status === 'streaming' && '生成中…'}
-            {status === 'error' && '出错'}
+            {status === 'ready' && 'Ready'}
+            {status === 'submitted' && 'Sent...'}
+            {status === 'streaming' && 'Generating...'}
+            {status === 'error' && 'Error'}
           </span>
           <button type="submit" disabled={!canSend}>
-            发送
+            Send
           </button>
         </div>
       </form>

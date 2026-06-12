@@ -1,11 +1,11 @@
 @import 'tailwindcss';
 
-/* 让 Tailwind 扫描 Streamdown 源码中的 class，否则表格/代码块等工具类不会生成 */
+/* Let Tailwind scan classes in Streamdown source, otherwise utility classes for tables/code blocks won't be generated */
 @source '../node_modules/streamdown/dist/**/*.js';
 @source '../node_modules/@streamdown/code/dist/**/*.js';
 @source '../node_modules/@streamdown/mermaid/dist/**/*.js';
 
-/* Streamdown 使用 dark: 前缀，与系统深色模式对齐 */
+/* Streamdown uses the dark: prefix, align with system dark mode */
 @variant dark (@media (prefers-color-scheme: dark));
 
 :root {
@@ -20,7 +20,7 @@
   --social-bg: rgba(244, 243, 236, 0.85);
   --tool-panel-bg: #f3edff;
   --tool-panel-bg-2: #ebe4ff;
-  /* 发送邮件工具卡：青绿系，与紫色联网搜索区分 */
+  /* Send email tool card: Teal color scheme, distinguished from purple web search */
   --tool-mail-bg: #ecfdf5;
   --tool-mail-bg-2: #d1fae5;
   --tool-mail-accent: #0d9488;
@@ -29,7 +29,7 @@
   --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
 
-  /* Streamdown / shadcn 语义色（组件用 border-border、bg-sidebar 等） */
+  /* Streamdown / shadcn semantic colors (components use border-border, bg-sidebar, etc.) */
   --background: var(--bg);
   --foreground: var(--text-h);
   --card: var(--bg);
@@ -128,7 +128,7 @@ code {
   font-family: var(--mono);
 }
 
-/* 行内 `code`（段落/列表等），勿作用于 Streamdown+Shiki 的 fenced 代码块 */
+/* Inline `code` (paragraphs/lists, etc.), do not apply to fenced code blocks of Streamdown+Shiki */
 p code,
 li code,
 td code,
@@ -147,7 +147,7 @@ blockquote code {
   background: var(--code-bg);
 }
 
-/* 代码块：必须块级 + 保留换行，覆盖上面任何误匹配 */
+/* Code blocks: Must be block-level + preserve line breaks, overriding any mismatched rules above */
 pre code,
 [data-streamdown='code-block'] code {
   display: block;
