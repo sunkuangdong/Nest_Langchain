@@ -1,0 +1,25 @@
+/* Streamdown itself is rendered with Tailwind classes; this is just for container-level tweaks in the chat area */
+
+.chat-streamdown {
+    text-align: left;
+    max-width: 100%;
+  }
+  
+  .chat-streamdown__inner {
+    /* Coordinate with the font size of the text in the bubble */
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  
+  /* Breathing room between paragraphs and tables/code blocks (Streamdown block spacing is built-in, this is a fallback) */
+  .chat-streamdown__inner :where(p + [data-streamdown='table-wrapper']),
+  .chat-streamdown__inner :where(p + [data-streamdown='code-block']),
+  .chat-streamdown__inner :where([data-streamdown='table-wrapper'] + p) {
+    margin-top: 0.5rem;
+  }
+  
+  /* Shiki's pre also needs to preserve line breaks (to avoid being affected by other global styles) */
+  .chat-streamdown [data-streamdown='code-block'] pre {
+    white-space: pre-wrap;
+    overflow-x: auto;
+  }

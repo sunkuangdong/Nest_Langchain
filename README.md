@@ -1,10 +1,11 @@
 # Nest LangChain Demo
 
-This is a demo project built with `NestJS` + `LangChain`, including:
+This is a demo project built with `NestJS` + `LangChain` + `React` (Vercel AI SDK), including:
 
-- Standard chat endpoint: `/ai/chat`
-- Streaming chat endpoint (SSE): `/ai/chat/stream`
-- Browser test page: `/sse-test.html`
+- AGUI Protocol Chat endpoint: `POST /ai/chat` (Data Stream Protocol)
+- Standard chat endpoint: `GET /ai/chat`
+- Streaming chat endpoint (SSE): `GET /ai/chat/stream`
+- Rich React Frontend: `agui-frontend` directory
 
 ## 1. Requirements
 
@@ -60,23 +61,40 @@ BOCHA_API_KEY=your_bocha_api_key
 | `BOCHA_API_KEY`   | No                       | `web_search` tool |
 
 
-## 4. Start the Project
+## 4. Start the Services
+
+### Start the Backend (NestJS)
 
 ```bash
+# In the project root directory
 npm run start:dev
 ```
 
-After startup, the server listens on `http://localhost:3000` by default.
+After startup, the backend server listens on `http://localhost:3000` by default.
+
+### Start the Frontend (AGUI React App)
+
+Open a new terminal window, navigate to the `agui-frontend` directory, install dependencies, and start the Vite development server:
+
+```bash
+cd agui-frontend
+npm install
+npm run dev
+```
+
+After startup, the frontend will be available at `http://localhost:5173` (or another port specified by Vite). Open this URL in your browser to use the rich AGUI chat interface.
 
 ## 5. Open the Page in Browser
 
-Open:
-
-- [http://localhost:3000/sse-test.html](http://localhost:3000/sse-test.html)
-
-This is a frontend test page where you can enter a prompt and view streaming output in real time.
+- **AGUI Rich Interface (Recommended)**: [http://localhost:5173](http://localhost:5173) (Requires starting the frontend server)
+- Old SSE Test Page: [http://localhost:3000/sse-test.html](http://localhost:3000/sse-test.html)
+- Old Voice Chat Demo: [http://localhost:3000/asr.html](http://localhost:3000/asr.html)
 
 ## 6. Quick API Checks
+
+### AGUI Protocol Endpoint (Vercel AI SDK Data Stream Protocol)
+
+- `POST http://localhost:3000/ai/chat` (Used by the React frontend, expects JSON payload with messages)
 
 ### Standard Chat Endpoint
 
@@ -129,7 +147,8 @@ curl -N -G --data-urlencode "query=Tell me what NestJS is" "http://localhost:300
 
 | Area                 | Capability                                                                                                                                                                                                         |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Chat**             | Non-streaming and SSE streaming replies driven by an OpenAI-compatible model with multi-round tool calling.                                                                                                        |
+| **AGUI Frontend**    | A modern React frontend (`agui-frontend`) built with Vite, Tailwind CSS, and `@ai-sdk/react`. It uses the Vercel AI SDK Data Stream Protocol to render rich UI components for tool calls (e.g., Web Search, Send Mail) alongside streaming Markdown text (via `streamdown`). |
+| **Chat**             | Non-streaming and SSE streaming replies driven by an OpenAI-compatible model with multi-round tool calling. Includes a new `POST /ai/chat` endpoint supporting the AGUI protocol.                                  |
 | **Tools (chat)**     | `query_user` (in-memory users), `send_mail` (SMTP via `@nestjs-modules/mailer`), `web_search` (Bocha API), `db_users_crud` (MySQL `user` table), `cron_job` (list / add / toggle jobs), `time_now` (server clock). |
 | **Jobs**             | Persist `every` / `cron` / `at` jobs in MySQL; register with `@nestjs/schedule` (`SchedulerRegistry`); re-enable on app bootstrap; manage jobs through natural language + `cron_job` tool.                         |
 | **Background agent** | `JobAgentService` runs a focused agent loop (`send_mail`, `web_search`, `db_users_crud`, `time_now`) for a one-off instruction — dev endpoint: `GET /ai/job-agent/run?instruction=...`.                            |

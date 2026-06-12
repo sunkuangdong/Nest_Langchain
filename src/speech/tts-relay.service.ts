@@ -47,14 +47,13 @@ export class TtsRelayService implements OnModuleInit, OnModuleDestroy {
 
   onModuleInit(): void {
     // Avoid duplicate listeners on hot reload (would synthesize/play each sentence twice).
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+
     this.eventEmitter.off(AI_TTS_STREAM_EVENT, this.onAiTtsStreamBound);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+
     this.eventEmitter.on(AI_TTS_STREAM_EVENT, this.onAiTtsStreamBound);
   }
 
   onModuleDestroy(): void {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     this.eventEmitter.off(AI_TTS_STREAM_EVENT, this.onAiTtsStreamBound);
     for (const session of this.sessions.values()) {
       this.closeSession(session.sessionId, 'module destroy');
@@ -129,17 +128,19 @@ export class TtsRelayService implements OnModuleInit, OnModuleDestroy {
     const session = this.sessions.get(sessionId);
     if (!session || session.closed) {
       throw new NotFoundException(
-        `TTS session 不存在或已关闭: ${sessionId}。请先打开 asr.html 建立 WebSocket。`,
+        `TTS session does not exist or is closed: ${sessionId}. Open asr.html first to establish a WebSocket.`,
       );
     }
 
     const input = text.trim();
     if (!input) {
-      throw new BadRequestException('text 不能为空');
+      throw new BadRequestException('text must not be empty');
     }
 
     if (session.synthesizing) {
-      throw new BadRequestException('当前 session 正在合成，请稍后再试');
+      throw new BadRequestException(
+        'this session is already synthesizing; try again later',
+      );
     }
 
     session.synthesizing = true;

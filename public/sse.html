@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AI SSE Chat 测试</title>
+    <title>AI SSE Chat Test</title>
     <style>
       * {
         box-sizing: border-box;
@@ -111,15 +111,15 @@
   <body>
     <div class="shell">
       <div class="card">
-        <h1>AI SSE Chat 测试</h1>
-        <label for="query">输入你的问题：</label>
+        <h1>AI SSE Chat Test</h1>
+        <label for="query">Your question:</label>
         <textarea
           id="query"
-          placeholder="请输入要发送给 AI 的问题..."
+          placeholder="Enter a question to send to the AI..."
         ></textarea>
         <div class="controls">
-          <button id="sendBtn" type="button">开始对话（SSE）</button>
-          <div class="status" id="status">状态：待机</div>
+          <button id="sendBtn" type="button">Start chat (SSE)</button>
+          <div class="status" id="status">Status: idle</div>
         </div>
         <div class="output" id="output"></div>
       </div>
@@ -145,7 +145,7 @@
       sendBtn.onclick = () => {
         const query = queryInput.value.trim();
         if (!query) {
-          alert('请输入问题');
+          alert('Please enter a question');
           return;
         }
 
@@ -153,13 +153,13 @@
         outputEl.textContent = '';
         receivedData = false;
         sendBtn.disabled = true;
-        statusEl.textContent = '状态：连接中…';
+        statusEl.textContent = 'Status: connecting…';
 
         const url = `/ai/chat/stream?query=${encodeURIComponent(query)}`;
         es = new EventSource(url);
 
         es.onopen = () => {
-          statusEl.textContent = '状态：已连接，流式接收中…';
+          statusEl.textContent = 'Status: connected, streaming…';
         };
 
         es.onmessage = (event) => {
@@ -167,13 +167,13 @@
             receivedData = true;
             outputEl.textContent += event.data;
           }
-          statusEl.textContent = '状态：接收中…';
+          statusEl.textContent = 'Status: receiving…';
         };
 
         es.onerror = () => {
           statusEl.textContent = receivedData
-            ? '状态：流式结束'
-            : '状态：连接失败';
+            ? 'Status: stream ended'
+            : 'Status: connection failed';
           closeEventSource();
         };
       };

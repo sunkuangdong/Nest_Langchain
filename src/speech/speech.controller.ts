@@ -25,7 +25,7 @@ export class SpeechController {
   ) {
     if (!file?.buffer?.length) {
       throw new BadRequestException(
-        '请通过 FormData 的 audio 字段上传音频文件',
+        'Upload an audio file via the audio field in FormData',
       );
     }
 
