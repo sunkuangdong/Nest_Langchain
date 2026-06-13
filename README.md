@@ -1,80 +1,86 @@
-# Nest LangChain Demo
+# NestJS + LangChain + AGUI React Demo
 
-This is a demo project built with `NestJS` + `LangChain` + `React` (Vercel AI SDK), including:
+This is a full-stack AI Agent demonstration project. It combines a powerful backend agent built with NestJS and LangChain, and a modern, rich-interactive frontend built with React and the Vercel AI SDK (AGUI Protocol).
 
-- AGUI Protocol Chat endpoint: `POST /ai/chat` (Data Stream Protocol)
-- Standard chat endpoint: `GET /ai/chat`
-- Streaming chat endpoint (SSE): `GET /ai/chat/stream`
-- Rich React Frontend: `agui-frontend` directory
+### Key Features:
 
-## 1. Requirements
+- **Backend Agent**: A robust NestJS server orchestrating an LLM via LangChain, capable of executing complex, multi-step tool calls.
+- **Rich Frontend**: A modern React application (Vite + Tailwind) that renders AI responses not just as text, but as interactive UI components.
+- **AGUI Protocol**: Seamless integration of the Vercel AI SDK Data Stream Protocol to bridge LangChain's execution steps with the frontend's UI state.
+- **Real-time Streaming**: Fault-tolerant Markdown streaming (via `streamdown`) and live tool-execution progress indicators.
 
-- Node.js `>= 18`
-- npm `>= 9`
+## 1. Architecture & Technologies
 
-## 2. Install Dependencies
+This project demonstrates how to build an AI assistant that doesn't just return plain text, but can actively use tools (like searching the web, sending emails, or querying a database) and render these actions as rich UI components in real-time.
 
-```bash
-npm install
-```
+Architecture Diagram
 
-## 3. Configure Environment Variables
+### Tech Stack
 
-Create a `.env` file in the project root and fill in your own values (do not commit secrets). Copy the template below, then adjust each line for your environment.
+**Backend (NestJS)**
 
-**Required (chat / agents will not start without these):**
+- **Framework**: [NestJS](https://nestjs.com/) for scalable server-side architecture.
+- **AI/Agent**: [LangChain](https://js.langchain.com/) for orchestrating the LLM and tool calling loop.
+- **Protocol**: `@ai-sdk/langchain` adapter to convert LangChain streams into the Vercel AI SDK Data Stream Protocol (AGUI).
+- **Database**: TypeORM + MySQL for persisting users and scheduled jobs.
+- **Tools**:
+  - `web_search`: Real-time internet search via Bocha API.
+  - `send_mail`: SMTP email sending via `@nestjs-modules/mailer`.
+  - `cron_job`: Background task scheduling via `@nestjs/schedule`.
+  - `db_users_crud`: Database operations.
+
+**Frontend (React)**
+
+- **Framework**: React + Vite + Tailwind CSS (`agui-frontend` directory).
+- **AI Integration**: `@ai-sdk/react` (`useChat`) to handle the SSE data stream and state management.
+- **Markdown Rendering**: `streamdown` for smooth, fault-tolerant streaming Markdown rendering (including code blocks and Mermaid charts).
+- **Rich Tool UI**: Custom React components to render tool invocations (e.g., a search result card, an email draft card) instead of raw JSON.
+
+---
+
+## 2. Getting Started
+
+### Step 2.1: Configure Environment Variables
+
+Create a `.env` file in the **project root** directory. You can copy the following template and fill in your actual values:
 
 ```env
-OPENAI_BASE_URL=https://your-compatible-api.example/v1
-OPENAI_API_KEY=your_api_key
-MODEL_NAME=your_model_name
-```
+# --- Required: LLM Configuration ---
+OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+OPENAI_API_KEY=your_llm_api_key_here
+MODEL_NAME=qwen-plus
 
-**Optional (enable only the tools you need):**
-
-```env
-# Server port (default 3000)
+# --- Optional: Server Port (Default 3000) ---
 PORT=3000
 
-# send_mail tool — SMTP (see app.module MailerModule)
+# --- Optional: Web Search Tool (Bocha API) ---
+BOCHA_API_KEY=your_bocha_api_key_here
+
+# --- Optional: Send Mail Tool (SMTP) ---
 MAIL_HOST=smtp.example.com
 MAIL_PORT=465
 MAIL_SECURE=true
-MAIL_USER=your_smtp_user
-MAIL_PASS=your_smtp_password
-MAIL_FROM=noreply@example.com
-
-# web_search tool — Bocha Web Search API (https://open.bochaai.com/)
-BOCHA_API_KEY=your_bocha_api_key
+MAIL_USER=your_email@example.com
+MAIL_PASS=your_email_password
+MAIL_FROM=your_email@example.com
 ```
 
-**MySQL (for `db_users_crud` and `cron_job` jobs):** the app connects to a local MySQL database named `hello` (see `src/app.module.ts` TypeORM settings: host `localhost`, user `root`, empty password by default). Start MySQL and create the database before running the app, or change the TypeORM config to match your setup.
+*Note: The project also connects to a local MySQL database named `hello` (root/no password by default) for the DB CRUD and Cron tools. Please ensure MySQL is running if you intend to use those specific tools.*
 
+### Step 2.2: Start the Backend (NestJS)
 
-| Variable          | Required                 | Used by           |
-| ----------------- | ------------------------ | ----------------- |
-| `OPENAI_BASE_URL` | Yes                      | LLM / all agents  |
-| `OPENAI_API_KEY`  | Yes                      | LLM / all agents  |
-| `MODEL_NAME`      | No (default `qwen-plus`) | LLM / all agents  |
-| `PORT`            | No (default `3000`)      | HTTP server       |
-| `MAIL_`*          | No                       | `send_mail` tool  |
-| `BOCHA_API_KEY`   | No                       | `web_search` tool |
-
-
-## 4. Start the Services
-
-### Start the Backend (NestJS)
+Open a terminal in the project root directory, install dependencies, and start the server:
 
 ```bash
-# In the project root directory
+npm install
 npm run start:dev
 ```
 
-After startup, the backend server listens on `http://localhost:3000` by default.
+*The backend will run on `http://localhost:3000`.*
 
-### Start the Frontend (AGUI React App)
+### Step 2.3: Start the Frontend (AGUI React App)
 
-Open a new terminal window, navigate to the `agui-frontend` directory, install dependencies, and start the Vite development server:
+Open a **new terminal window**, navigate to the frontend directory, install dependencies, and start the Vite dev server:
 
 ```bash
 cd agui-frontend
@@ -82,75 +88,109 @@ npm install
 npm run dev
 ```
 
-After startup, the frontend will be available at `http://localhost:5173` (or another port specified by Vite). Open this URL in your browser to use the rich AGUI chat interface.
+*The frontend will run on `http://localhost:5173`.*
 
-## 5. Open the Page in Browser
+### Step 2.4: Experience the App
 
-- **AGUI Rich Interface (Recommended)**: [http://localhost:5173](http://localhost:5173) (Requires starting the frontend server)
-- Old SSE Test Page: [http://localhost:3000/sse-test.html](http://localhost:3000/sse-test.html)
-- Old Voice Chat Demo: [http://localhost:3000/asr.html](http://localhost:3000/asr.html)
-
-## 6. Quick API Checks
-
-### AGUI Protocol Endpoint (Vercel AI SDK Data Stream Protocol)
-
-- `POST http://localhost:3000/ai/chat` (Used by the React frontend, expects JSON payload with messages)
-
-### Standard Chat Endpoint
-
-- [http://localhost:3000/ai/chat?query=Hello](http://localhost:3000/ai/chat?query=Hello)
-
-### Streaming Endpoint (recommended via curl)
-
-```bash
-curl -N -G --data-urlencode "query=Tell me what NestJS is" "http://localhost:3000/ai/chat/stream"
-```
-
-## FAQ
-
-- Page cannot be opened: make sure the server is running and your terminal shows `Nest application successfully started`.
-- No model response: verify `OPENAI_BASE_URL`, `OPENAI_API_KEY`, and `MODEL_NAME` in `.env`.
-- Garbled text in streaming page: use `sse-test.html` or `curl -N`; do not open the SSE endpoint directly as a normal web page.
+Open your browser and navigate to **[http://localhost:5173](http://localhost:5173)**. 
+Try asking the AI to "Search the web for 2026 AI trends" or "Send an email to [boss@example.com](mailto:boss@example.com) about my progress" to see the rich UI tool cards in action!
 
 ---
 
-## Current Version — AI Agent, Tools & Scheduled Jobs
+## 3. Disclaimer
 
-This release extends the NestJS + LangChain demo into a tool-using chat agent and a MySQL-backed job scheduler. Use the links below (same style as **§5–§6** above) to open pages and APIs in the browser after `npm run start:dev`. The chat agent can invoke LangChain tools for user lookup, email, web search, MySQL user CRUD, server time, and `cron_job` scheduling. Jobs persist in MySQL and are re-registered on startup by `JobService` using `@nestjs/schedule`. Scheduled ticks currently log the instruction only; use the job-agent URL below to test background LLM execution.
+**Disclaimer**: This project is provided for educational and demonstration purposes only. 
 
-### Quick links (this version)
+- Do not use this code in a production environment without proper security reviews, error handling, and access controls.
+- The tools provided (especially `send_mail` and `db_users_crud`) can perform real actions. Please be cautious when exposing these capabilities to an LLM.
+- The authors are not responsible for any misuse, data loss, or unexpected charges incurred from third-party APIs (like OpenAI or Bocha) while using this software.
 
-**Browser test pages**
+### Tech Stack
 
-- [http://localhost:3000/sse-test.html](http://localhost:3000/sse-test.html) — recommended UI (stream + full JSON reply)
-- [http://localhost:3000/sse.html](http://localhost:3000/sse.html) — alternate SSE chat page
+**Backend (NestJS)**
 
-**HTTP APIs**
+- **Framework**: [NestJS](https://nestjs.com/) for scalable server-side architecture.
+- **AI/Agent**: [LangChain](https://js.langchain.com/) for orchestrating the LLM and tool calling loop.
+- **Protocol**: `@ai-sdk/langchain` adapter to convert LangChain streams into the Vercel AI SDK Data Stream Protocol (AGUI).
+- **Database**: TypeORM + MySQL for persisting users and scheduled jobs.
+- **Tools**:
+  - `web_search`: Real-time internet search via Bocha API.
+  - `send_mail`: SMTP email sending via `@nestjs-modules/mailer`.
+  - `cron_job`: Background task scheduling via `@nestjs/schedule`.
+  - `db_users_crud`: Database operations.
 
-- [http://localhost:3000/ai/chat?query=Hello](http://localhost:3000/ai/chat?query=Hello) — non-streaming chat (JSON `{ answer }`)
-- [http://localhost:3000/ai/job-agent/run?instruction=Call+time_now+and+summarize](http://localhost:3000/ai/job-agent/run?instruction=Call+time_now+and+summarize) — run `JobAgentService` once (JSON `{ result }`)
+**Frontend (React)**
 
-**Streaming (use curl, not the browser address bar)**
+- **Framework**: React + Vite + Tailwind CSS (`agui-frontend` directory).
+- **AI Integration**: `@ai-sdk/react` (`useChat`) to handle the SSE data stream and state management.
+- **Markdown Rendering**: `streamdown` for smooth, fault-tolerant streaming Markdown rendering (including code blocks and Mermaid charts).
+- **Rich Tool UI**: Custom React components to render tool invocations (e.g., a search result card, an email draft card) instead of raw JSON.
 
-```bash
-curl -N -G --data-urlencode "query=Tell me what NestJS is" "http://localhost:3000/ai/chat/stream"
+---
+
+## 2. Getting Started
+
+### Step 2.1: Configure Environment Variables
+
+Create a `.env` file in the **project root** directory. You can copy the following template and fill in your actual values:
+
+```env
+# --- Required: LLM Configuration ---
+OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+OPENAI_API_KEY=your_llm_api_key_here
+MODEL_NAME=qwen-plus
+
+# --- Optional: Server Port (Default 3000) ---
+PORT=3000
+
+# --- Optional: Web Search Tool (Bocha API) ---
+BOCHA_API_KEY=your_bocha_api_key_here
+
+# --- Optional: Send Mail Tool (SMTP) ---
+MAIL_HOST=smtp.example.com
+MAIL_PORT=465
+MAIL_SECURE=true
+MAIL_USER=your_email@example.com
+MAIL_PASS=your_email_password
+MAIL_FROM=your_email@example.com
 ```
 
-**Example tool prompts** (paste into [sse-test.html](http://localhost:3000/sse-test.html); each request is single-turn):
+*Note: The project also connects to a local MySQL database named `hello` (root/no password by default) for the DB CRUD and Cron tools. Please ensure MySQL is running if you intend to use those specific tools.*
 
-- Cron list: `Use cron_job with action=list`
-- Cron add: `Use cron_job to add a job: type=every, everyMs=60000, instruction=remind me to drink water`
-- Web search: `Use web_search for 2026 AI trends and summarize in one sentence`
+### Step 2.2: Start the Backend (NestJS)
 
-### Summary — capabilities in this version
+Open a terminal in the project root directory, install dependencies, and start the server:
 
+```bash
+npm install
+npm run start:dev
+```
 
-| Area                 | Capability                                                                                                                                                                                                         |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **AGUI Frontend**    | A modern React frontend (`agui-frontend`) built with Vite, Tailwind CSS, and `@ai-sdk/react`. It uses the Vercel AI SDK Data Stream Protocol to render rich UI components for tool calls (e.g., Web Search, Send Mail) alongside streaming Markdown text (via `streamdown`). |
-| **Chat**             | Non-streaming and SSE streaming replies driven by an OpenAI-compatible model with multi-round tool calling. Includes a new `POST /ai/chat` endpoint supporting the AGUI protocol.                                  |
-| **Tools (chat)**     | `query_user` (in-memory users), `send_mail` (SMTP via `@nestjs-modules/mailer`), `web_search` (Bocha API), `db_users_crud` (MySQL `user` table), `cron_job` (list / add / toggle jobs), `time_now` (server clock). |
-| **Jobs**             | Persist `every` / `cron` / `at` jobs in MySQL; register with `@nestjs/schedule` (`SchedulerRegistry`); re-enable on app bootstrap; manage jobs through natural language + `cron_job` tool.                         |
-| **Background agent** | `JobAgentService` runs a focused agent loop (`send_mail`, `web_search`, `db_users_crud`, `time_now`) for a one-off instruction — dev endpoint: `GET /ai/job-agent/run?instruction=...`.                            |
-| **Static UI**        | `public/sse-test.html` served at `/sse-test.html`.                                                                                                                                                                 |
-| **Data**             | TypeORM + MySQL (`hello` database, `user` and `job` entities, `synchronize: true`).                                                                                                                                |
+*The backend will run on `http://localhost:3000`.*
+
+### Step 2.3: Start the Frontend (AGUI React App)
+
+Open a **new terminal window**, navigate to the frontend directory, install dependencies, and start the Vite dev server:
+
+```bash
+cd agui-frontend
+npm install
+npm run dev
+```
+
+*The frontend will run on `http://localhost:5173`.*
+
+### Step 2.4: Experience the App
+
+Open your browser and navigate to **[http://localhost:5173](http://localhost:5173)**. 
+Try asking the AI to "Search the web for 2026 AI trends" or "Send an email to [boss@example.com](mailto:boss@example.com) about my progress" to see the rich UI tool cards in action!
+
+---
+
+## 3. Disclaimer
+
+**Disclaimer**: This project is provided for educational and demonstration purposes only. 
+
+- Do not use this code in a production environment without proper security reviews, error handling, and access controls.
+- The tools provided (especially `send_mail` and `db_users_crud`) can perform real actions. Please be cautious when exposing these capabilities to an LLM.
+- The authors are not responsible for any misuse, data loss, or unexpected charges incurred from third-party APIs (like OpenAI or Bocha) while using this software.
