@@ -22,7 +22,7 @@ This project demonstrates how to build an AI assistant that doesn't just return 
 - **Framework**: [NestJS](https://nestjs.com/) for scalable server-side architecture.
 - **AI/Agent**: [LangChain](https://js.langchain.com/) for orchestrating the LLM and tool calling loop.
 - **Protocol**: `@ai-sdk/langchain` adapter to convert LangChain streams into the Vercel AI SDK Data Stream Protocol (AGUI).
-- **Database**: TypeORM + MySQL for persisting users and scheduled jobs.
+- **Database**: Milvus Vector DB for persisting users and scheduled jobs.
 - **Tools**:
   - `web_search`: Real-time internet search via Bocha API.
   - `send_mail`: SMTP email sending via `@nestjs-modules/mailer`.
@@ -65,7 +65,7 @@ MAIL_PASS=your_email_password
 MAIL_FROM=your_email@example.com
 ```
 
-*Note: The project also connects to a local MySQL database named `hello` (root/no password by default) for the DB CRUD and Cron tools. Please ensure MySQL is running if you intend to use those specific tools.*
+*Note: The project also connects to a local Milvus database for the DB CRUD and Cron tools. Please ensure Milvus is running if you intend to use those specific tools.*
 
 ### Step 2.2: Start the Backend (NestJS)
 
@@ -112,7 +112,7 @@ Try asking the AI to "Search the web for 2026 AI trends" or "Send an email to [b
 - **Framework**: [NestJS](https://nestjs.com/) for scalable server-side architecture.
 - **AI/Agent**: [LangChain](https://js.langchain.com/) for orchestrating the LLM and tool calling loop.
 - **Protocol**: `@ai-sdk/langchain` adapter to convert LangChain streams into the Vercel AI SDK Data Stream Protocol (AGUI).
-- **Database**: TypeORM + MySQL for persisting users and scheduled jobs.
+- **Database**: Milvus Vector DB for persisting users and scheduled jobs.
 - **Tools**:
   - `web_search`: Real-time internet search via Bocha API.
   - `send_mail`: SMTP email sending via `@nestjs-modules/mailer`.
@@ -155,7 +155,7 @@ MAIL_PASS=your_email_password
 MAIL_FROM=your_email@example.com
 ```
 
-*Note: The project also connects to a local MySQL database named `hello` (root/no password by default) for the DB CRUD and Cron tools. Please ensure MySQL is running if you intend to use those specific tools.*
+*Note: The project also connects to a local Milvus database for the DB CRUD and Cron tools. Please ensure Milvus is running if you intend to use those specific tools.*
 
 ### Step 2.2: Start the Backend (NestJS)
 

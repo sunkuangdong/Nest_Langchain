@@ -52,7 +52,7 @@
     <text x="20" y="130" class="text-body">• JobAgentService</text>
     <rect x="20" y="150" width="200" height="60" rx="4" ry="4" fill="#ecfdf5" stroke="#34d399" stroke-width="1" />
     <text x="120" y="170" class="text-body" font-weight="bold" text-anchor="middle">LangChain Agent</text>
-    <text x="120" y="195" class="text-sm" text-anchor="middle">createAgent() + toUIMessageStream</text>
+    <text x="120" y="195" class="text-sm" text-anchor="middle" font-size="10" letter-spacing="-0.5">createAgent() + toUIMessageStream</text>
   </g>
 
   <!-- Connection: Backend to LLM -->
@@ -95,9 +95,9 @@
   <g transform="translate(380, 450)">
     <rect class="box" width="240" height="100" />
     <path d="M 0 8 Q 0 0 8 0 L 232 0 Q 240 0 240 8 L 240 35 L 0 35 Z" fill="#047857" />
-    <text x="120" y="23" class="text-title" text-anchor="middle">MySQL Database</text>
-    <text x="120" y="65" class="text-body" text-anchor="middle">TypeORM</text>
-    <text x="120" y="85" class="text-sm" text-anchor="middle">Tables: user, job</text>
+    <text x="120" y="23" class="text-title" text-anchor="middle">Milvus Vector DB</text>
+    <text x="120" y="65" class="text-body" text-anchor="middle">Vector Storage</text>
+    <text x="120" y="85" class="text-sm" text-anchor="middle">Collections: user, job</text>
   </g>
 
 </svg>
