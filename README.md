@@ -13,7 +13,7 @@ This is a full-stack AI Agent demonstration project. It combines a powerful back
 
 This project demonstrates how to build an AI assistant that doesn't just return plain text, but can actively use tools (like searching the web, sending emails, or querying a database) and render these actions as rich UI components in real-time.
 
-Architecture Diagram
+![Architecture Diagram](./public/architecture.svg)
 
 ### Tech Stack
 
