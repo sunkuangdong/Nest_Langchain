@@ -95,9 +95,9 @@
   <g transform="translate(380, 450)">
     <rect class="box" width="240" height="100" />
     <path d="M 0 8 Q 0 0 8 0 L 232 0 Q 240 0 240 8 L 240 35 L 0 35 Z" fill="#047857" />
-    <text x="120" y="23" class="text-title" text-anchor="middle">Milvus Vector DB</text>
-    <text x="120" y="65" class="text-body" text-anchor="middle">Vector Storage</text>
-    <text x="120" y="85" class="text-sm" text-anchor="middle">Collections: user, job</text>
+    <text x="120" y="23" class="text-title" text-anchor="middle">MySQL + Milvus</text>
+    <text x="120" y="65" class="text-body" text-anchor="middle">MySQL: user / job</text>
+    <text x="120" y="85" class="text-sm" text-anchor="middle">Milvus: RAG vectors</text>
   </g>
 
 </svg>
