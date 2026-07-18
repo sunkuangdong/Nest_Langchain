@@ -74,12 +74,28 @@ MILVUS_ADDRESS=localhost:19530
 MILVUS_COLLECTION=rag_docs
 MILVUS_USER=
 MILVUS_PASSWORD=
-EMBEDDING_MODEL=text-embedding-v3
+EMBEDDING_MODEL=text-embedding-3-small
 RAG_DOCS_PATH=docs/rag-sample
 RAG_TOP_K=4
 ```
 
 *Note: MySQL is used for business tables. Milvus is for RAG document vectors. Sample LangChain docs are under `docs/rag-sample/`.*
+
+### Step 2.1b: Ingest RAG docs into Milvus (optional)
+
+1. Start Docker containers: `milvus-standalone`, `milvus-etcd`, `milvus-minio` (port `19530`).
+2. Ensure `.env` has `OPENAI_API_KEY`, `OPENAI_BASE_URL`, and Milvus settings (see above).
+3. Run ingest (chunk → embed → insert):
+
+```bash
+# First time / rebuild collection from scratch
+pnpm run rag:ingest:recreate
+
+# Or append into existing collection
+pnpm run rag:ingest
+```
+
+Script: [`scripts/rag-ingest.mjs`](./scripts/rag-ingest.mjs). Source docs: [`docs/rag-sample/`](./docs/rag-sample/).
 
 ### Step 2.2: Start the Backend (NestJS)
 

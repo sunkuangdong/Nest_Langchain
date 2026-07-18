@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['eslint.config.mjs'],
+    ignores: ['eslint.config.mjs', 'scripts/**', 'agui-frontend/**'],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
@@ -19,7 +19,9 @@ export default tseslint.config(
       },
       sourceType: 'commonjs',
       parserOptions: {
-        projectService: true,
+        projectService: {
+          allowDefaultProject: ['*.mjs', 'src/**/*.mjs'],
+        },
         tsconfigRootDir: import.meta.dirname,
       },
     },

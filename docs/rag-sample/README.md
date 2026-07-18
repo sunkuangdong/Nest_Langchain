@@ -17,3 +17,12 @@ These files are for local RAG experiments only. Prefer the live docs for the lat
 - How does retrieval work in LangChain?
 - What is an embedding model used for?
 - How do I use Milvus with LangChain?
+
+### Ingest into Milvus
+
+```bash
+# From project root; Milvus must be running on localhost:19530
+pnpm run rag:ingest:recreate
+```
+
+This runs `scripts/rag-ingest.mjs`: chunk markdown → call embedding API → write to collection `MILVUS_COLLECTION` (default `rag_docs`).
