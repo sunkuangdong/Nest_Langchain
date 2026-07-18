@@ -114,7 +114,11 @@ npm run start:dev
 
 *Backend: `http://localhost:3000`.*
 
-### Step 2.3: Start the Frontend (AGUI React App)
+### Step 2.3: Open the App
+
+Open **[http://localhost:3000/asr.html](http://localhost:3000/asr.html)** (or visit `http://localhost:3000/` — redirects there).
+
+Optional AGUI React UI:
 
 ```bash
 cd agui-frontend
@@ -122,11 +126,7 @@ npm install
 npm run dev
 ```
 
-*Frontend: `http://localhost:5173`.*
-
-### Step 2.4: Experience the App
-
-Open **[http://localhost:5173](http://localhost:5173)** (AGUI UI) or **[http://localhost:3000/asr.html](http://localhost:3000/asr.html)** (voice chat).
+Then open **[http://localhost:5173](http://localhost:5173)**.
 
 ---
 

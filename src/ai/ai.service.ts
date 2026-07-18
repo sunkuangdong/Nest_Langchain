@@ -14,6 +14,7 @@ import {
   WEB_SEARCH_TOOL,
   DB_USERS_CRUD_TOOL,
   CRON_JOB_TOOL,
+  KNOWLEDGE_SEARCH_TOOL,
 } from './ai.tokens';
 import type { StructuredToolInterface } from '@langchain/core/tools';
 import {
@@ -136,14 +137,35 @@ function parseCronJobArgs(rawArgs: unknown): CronJobArgs {
   return cronJobArgsSchema.parse(args);
 }
 
+const knowledgeSearchArgsSchema = z.object({
+  query: z.string().min(1),
+  topK: z.number().int().min(1).max(20).optional(),
+});
+
+type KnowledgeSearchArgs = z.infer<typeof knowledgeSearchArgsSchema>;
+
+function parseKnowledgeSearchArgs(rawArgs: unknown): KnowledgeSearchArgs {
+  let args = rawArgs;
+  if (typeof args === 'string') {
+    try {
+      args = JSON.parse(args) as unknown;
+    } catch {
+      throw new Error('Invalid knowledge_search args JSON');
+    }
+  }
+  return knowledgeSearchArgsSchema.parse(args);
+}
+
 const AGENT_SYSTEM_PROMPT = `You are an AI assistant with tool access. The following tools are wired on the server—do not claim you "cannot access the internet" or "cannot send email":
-      1. web_search: Search the web for real-time information. When the user asks for latest news, trends, or facts to verify, call this first.
-      2. send_mail: Send email. When the user asks to send to an email address, compose the content and call this tool.
-      3. query_user: Look up mock local users by user ID (Three Kingdoms figures, IDs like 001).
-      4. db_users_crud: CRUD on the MySQL users table (create/list/get/update/delete).
-      5. cron_job: Manage server cron jobs (list/add/toggle). Call when the user wants scheduled reminders, periodic runs, or one-time execution.
+      1. knowledge_search: Search the local Milvus knowledge base (LangChain / RAG / embeddings docs). Prefer this over web_search for questions about RAG, LangChain retrieval, embeddings, or other indexed local documentation.
+      2. web_search: Search the web for real-time information. When the user asks for latest news, trends, or facts to verify, call this first.
+      3. send_mail: Send email. When the user asks to send to an email address, compose the content and call this tool.
+      4. query_user: Look up mock local users by user ID (Three Kingdoms figures, IDs like 001).
+      5. db_users_crud: CRUD on the MySQL users table (create/list/get/update/delete).
+      6. cron_job: Manage server cron jobs (list/add/toggle). Call when the user wants scheduled reminders, periodic runs, or one-time execution.
 
       Rules:
+      - For local-doc / RAG / LangChain questions, call knowledge_search first and ground your answer in the returned chunks.
       - If a tool returns an error, explain the API/configuration reason honestly (e.g. Bocha quota exceeded); do not revert to saying you cannot search yourself.
       - After a successful search, answer based on the results; if the user wants HTML email, send it with send_mail.
       - In multi-turn chat, use prior context: remember names, corrections, and preferences; do not treat user self-introduction as a third party to search; avoid re-greeting every turn.`;
@@ -270,9 +292,16 @@ export class AiService {
       CronJobArgs,
       string
     >,
+    @Inject(KNOWLEDGE_SEARCH_TOOL)
+    private readonly knowledgeSearchTool: StructuredToolInterface<
+      typeof knowledgeSearchArgsSchema,
+      KnowledgeSearchArgs,
+      string
+    >,
     private readonly eventEmitter: EventEmitter2,
   ) {
     this.modelWithTools = this.model.bindTools([
+      this.knowledgeSearchTool,
       this.queryUserTool,
       this.sendMailTool,
       this.webSearchTool,
@@ -285,6 +314,7 @@ export class AiService {
       model: this.model as any,
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       tools: [
+        this.knowledgeSearchTool,
         this.queryUserTool,
         this.sendMailTool,
         this.webSearchTool,
@@ -397,6 +427,17 @@ export class AiService {
           console.log('[cron_job] args:', args);
           const result = await this.cronJobTool.invoke(args);
           console.log('[cron_job] result:', result);
+
+          messages.push(
+            new ToolMessage({
+              tool_call_id: toolCallId,
+              name: toolName,
+              content: result,
+            }),
+          );
+        } else if (toolName === 'knowledge_search') {
+          const args = parseKnowledgeSearchArgs(toolCall.args);
+          const result = await this.knowledgeSearchTool.invoke(args);
 
           messages.push(
             new ToolMessage({
@@ -572,6 +613,17 @@ export class AiService {
         } else if (toolName === 'cron_job') {
           const args = parseCronJobArgs(toolCall.args);
           const result = await this.cronJobTool.invoke(args);
+
+          messages.push(
+            new ToolMessage({
+              tool_call_id: toolCallId,
+              name: toolName,
+              content: result,
+            }),
+          );
+        } else if (toolName === 'knowledge_search') {
+          const args = parseKnowledgeSearchArgs(toolCall.args);
+          const result = await this.knowledgeSearchTool.invoke(args);
 
           messages.push(
             new ToolMessage({
