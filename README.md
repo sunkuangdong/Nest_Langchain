@@ -97,6 +97,14 @@ pnpm run rag:ingest
 
 Script: [`scripts/rag-ingest.mjs`](./scripts/rag-ingest.mjs). Source docs: [`docs/rag-sample/`](./docs/rag-sample/).
 
+Verify retrieval (query → embedding → Milvus top-K):
+
+```bash
+pnpm run rag:search -- "What is RAG?"
+```
+
+Nest tool `knowledge_search` is registered in `ToolModule` (wire into `AiService` in the next step to use it in chat).
+
 ### Step 2.2: Start the Backend (NestJS)
 
 ```bash

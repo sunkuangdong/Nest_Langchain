@@ -9,6 +9,7 @@ import {
   SEND_MAIL_TOOL,
   WEB_SEARCH_TOOL,
   TIME_NOW_TOOL,
+  KNOWLEDGE_SEARCH_TOOL,
 } from '../ai/ai.tokens';
 import { UserService } from '../ai/user.service';
 import { LlmService } from './llm.service';
@@ -18,10 +19,17 @@ import { DbUsersCrudToolService } from './db-users-crud-tool.service';
 import { TimeNowToolService } from './time-now-tool.service';
 import { CronJobToolService } from './cron-job-tool.service';
 import { QueryUserToolService } from './query-user-tool.service';
+import { KnowledgeSearchToolService } from './knowledge-search-tool.service';
 import { JobModule } from '../job/job.module';
+import { RagModule } from '../rag/rag.module';
 
 @Module({
-  imports: [MailerModule, UsersModule, forwardRef(() => JobModule)],
+  imports: [
+    MailerModule,
+    UsersModule,
+    forwardRef(() => JobModule),
+    RagModule,
+  ],
   providers: [
     UserService,
     LlmService,
@@ -31,6 +39,7 @@ import { JobModule } from '../job/job.module';
     TimeNowToolService,
     CronJobToolService,
     QueryUserToolService,
+    KnowledgeSearchToolService,
     {
       provide: AI_MODEL,
       useFactory: (llmService: LlmService) => llmService.getModel(),
@@ -66,6 +75,11 @@ import { JobModule } from '../job/job.module';
       useFactory: (svc: TimeNowToolService) => svc.tool,
       inject: [TimeNowToolService],
     },
+    {
+      provide: KNOWLEDGE_SEARCH_TOOL,
+      useFactory: (svc: KnowledgeSearchToolService) => svc.tool,
+      inject: [KnowledgeSearchToolService],
+    },
   ],
   exports: [
     AI_MODEL,
@@ -75,6 +89,7 @@ import { JobModule } from '../job/job.module';
     DB_USERS_CRUD_TOOL,
     CRON_JOB_TOOL,
     TIME_NOW_TOOL,
+    KNOWLEDGE_SEARCH_TOOL,
   ],
 })
 export class ToolModule {}

@@ -6,7 +6,12 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['eslint.config.mjs', 'scripts/**', 'agui-frontend/**'],
+    ignores: [
+      'eslint.config.mjs',
+      'scripts/**',
+      'agui-frontend/**',
+      'src/tts_and_stt/**/*.mjs',
+    ],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
@@ -19,9 +24,7 @@ export default tseslint.config(
       },
       sourceType: 'commonjs',
       parserOptions: {
-        projectService: {
-          allowDefaultProject: ['*.mjs', 'src/**/*.mjs'],
-        },
+        projectService: true,
         tsconfigRootDir: import.meta.dirname,
       },
     },
@@ -39,14 +42,6 @@ export default tseslint.config(
     rules: {
       // class-validator decorators are often flagged as unsafe-call under strict type-checked
       '@typescript-eslint/no-unsafe-call': 'off',
-    },
-  },
-  {
-    files: ['src/**/*.mjs'],
-    extends: [tseslint.configs.disableTypeChecked],
-    languageOptions: {
-      sourceType: 'module',
-      globals: globals.node,
     },
   },
   {

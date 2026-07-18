@@ -7,3 +7,4 @@ export const WEB_SEARCH_TOOL = Symbol('WEB_SEARCH_TOOL');
 export const DB_USERS_CRUD_TOOL = Symbol('DB_USERS_CRUD_TOOL');
 export const CRON_JOB_TOOL = Symbol('CRON_JOB_TOOL');
 export const TIME_NOW_TOOL = Symbol('TIME_NOW_TOOL');
+export const KNOWLEDGE_SEARCH_TOOL = Symbol('KNOWLEDGE_SEARCH_TOOL');
