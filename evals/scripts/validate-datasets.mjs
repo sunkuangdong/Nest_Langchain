@@ -3,7 +3,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const ROOT = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../..',
+);
 const DATASET_DIR = path.join(ROOT, 'evals/datasets');
 const TOOL_CLASSES = [
   'knowledge_search',
@@ -50,33 +53,49 @@ function loadJsonl(filename) {
 }
 
 function sha256(fullPath) {
-  return crypto.createHash('sha256').update(fs.readFileSync(fullPath)).digest('hex');
+  return crypto
+    .createHash('sha256')
+    .update(fs.readFileSync(fullPath))
+    .digest('hex');
 }
 
 function sameKeys(row, expected) {
   return (
-    JSON.stringify(Object.keys(row).sort()) === JSON.stringify([...expected].sort())
+    JSON.stringify(Object.keys(row).sort()) ===
+    JSON.stringify([...expected].sort())
   );
 }
 
 function validateRag(dataset, expectedSize) {
   const errors = [];
-  const expectedFields = ['id', 'query', 'relevant_sources', 'expected_evidence'];
+  const expectedFields = [
+    'id',
+    'query',
+    'relevant_sources',
+    'expected_evidence',
+  ];
   if (dataset.rows.length !== expectedSize) {
-    errors.push(`${dataset.filename}: expected ${expectedSize}, found ${dataset.rows.length}`);
+    errors.push(
+      `${dataset.filename}: expected ${expectedSize}, found ${dataset.rows.length}`,
+    );
   }
   const ids = new Set();
   for (const [index, row] of dataset.rows.entries()) {
     const at = `${dataset.filename}:${index + 1}`;
     if (!sameKeys(row, expectedFields)) errors.push(`${at}: unexpected schema`);
-    if (!row.id || ids.has(row.id)) errors.push(`${at}: missing or duplicate id`);
+    if (!row.id || ids.has(row.id))
+      errors.push(`${at}: missing or duplicate id`);
     ids.add(row.id);
-    if (typeof row.query !== 'string' || !row.query.trim()) errors.push(`${at}: invalid query`);
+    if (typeof row.query !== 'string' || !row.query.trim())
+      errors.push(`${at}: invalid query`);
     if (!Array.isArray(row.relevant_sources) || !row.relevant_sources.length) {
       errors.push(`${at}: relevant_sources must be non-empty`);
       continue;
     }
-    if (!Array.isArray(row.expected_evidence) || !row.expected_evidence.length) {
+    if (
+      !Array.isArray(row.expected_evidence) ||
+      !row.expected_evidence.length
+    ) {
       errors.push(`${at}: expected_evidence must be non-empty`);
       continue;
     }
@@ -96,8 +115,13 @@ function validateRag(dataset, expectedSize) {
     }
     const corpusText = sourceTexts.join('\n');
     for (const evidence of row.expected_evidence) {
-      if (typeof evidence !== 'string' || !corpusText.includes(evidence.toLowerCase())) {
-        errors.push(`${at}: evidence not found in relevant sources: ${evidence}`);
+      if (
+        typeof evidence !== 'string' ||
+        !corpusText.includes(evidence.toLowerCase())
+      ) {
+        errors.push(
+          `${at}: evidence not found in relevant sources: ${evidence}`,
+        );
       }
     }
   }
@@ -119,45 +143,61 @@ function validateTools(dataset, expectedPerClass) {
   for (const [index, row] of dataset.rows.entries()) {
     const at = `${dataset.filename}:${index + 1}`;
     if (!sameKeys(row, expectedFields)) errors.push(`${at}: unexpected schema`);
-    if (!row.id || ids.has(row.id)) errors.push(`${at}: missing or duplicate id`);
+    if (!row.id || ids.has(row.id))
+      errors.push(`${at}: missing or duplicate id`);
     ids.add(row.id);
     if (!TOOL_CLASSES.includes(row.expected_tool)) {
       errors.push(`${at}: unsupported expected_tool ${row.expected_tool}`);
       continue;
     }
     counts[row.expected_tool] += 1;
-    if (typeof row.query !== 'string' || !row.query.trim()) errors.push(`${at}: invalid query`);
-    if (!Array.isArray(row.required_arguments)) errors.push(`${at}: required_arguments must be an array`);
+    if (typeof row.query !== 'string' || !row.query.trim())
+      errors.push(`${at}: invalid query`);
+    if (!Array.isArray(row.required_arguments))
+      errors.push(`${at}: required_arguments must be an array`);
     for (const argument of row.required_arguments || []) {
       if (!TOOL_ARGUMENTS[row.expected_tool].has(argument)) {
-        errors.push(`${at}: invalid required argument ${argument} for ${row.expected_tool}`);
+        errors.push(
+          `${at}: invalid required argument ${argument} for ${row.expected_tool}`,
+        );
       }
     }
-    if (!Array.isArray(row.forbidden_tools)) errors.push(`${at}: forbidden_tools must be an array`);
+    if (!Array.isArray(row.forbidden_tools))
+      errors.push(`${at}: forbidden_tools must be an array`);
     for (const forbidden of row.forbidden_tools || []) {
-      if (!TOOL_CLASSES.includes(forbidden) || forbidden === row.expected_tool) {
+      if (
+        !TOOL_CLASSES.includes(forbidden) ||
+        forbidden === row.expected_tool
+      ) {
         errors.push(`${at}: invalid forbidden tool ${forbidden}`);
       }
     }
-    if (typeof row.side_effect !== 'boolean') errors.push(`${at}: side_effect must be boolean`);
+    if (typeof row.side_effect !== 'boolean')
+      errors.push(`${at}: side_effect must be boolean`);
     if (row.expected_tool === 'no_tool' && row.required_arguments.length) {
       errors.push(`${at}: no_tool cannot require arguments`);
     }
   }
   for (const name of TOOL_CLASSES) {
     if (counts[name] !== expectedPerClass) {
-      errors.push(`${dataset.filename}: ${name} expected ${expectedPerClass}, found ${counts[name]}`);
+      errors.push(
+        `${dataset.filename}: ${name} expected ${expectedPerClass}, found ${counts[name]}`,
+      );
     }
   }
   return { errors, counts };
 }
 
 function assertDisjoint(left, right, label) {
-  const leftQueries = new Set(left.rows.map((row) => row.query.trim().toLowerCase()));
+  const leftQueries = new Set(
+    left.rows.map((row) => row.query.trim().toLowerCase()),
+  );
   const overlap = right.rows
     .map((row) => row.query.trim().toLowerCase())
     .filter((query) => leftQueries.has(query));
-  return overlap.length ? [`${label} smoke/main query overlap: ${overlap.join(', ')}`] : [];
+  return overlap.length
+    ? [`${label} smoke/main query overlap: ${overlap.join(', ')}`]
+    : [];
 }
 
 const ragSmoke = loadJsonl('rag_smoke_v1.jsonl');

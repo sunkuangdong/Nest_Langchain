@@ -4,7 +4,10 @@ import { fileURLToPath } from 'node:url';
 import 'dotenv/config';
 import { captureRuntimeConfig } from '../lib/runtime-config.mjs';
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const ROOT = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../..',
+);
 const datasetDir = path.join(ROOT, 'evals/datasets');
 const datasetPaths = fs
   .readdirSync(datasetDir)

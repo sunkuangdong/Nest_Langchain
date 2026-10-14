@@ -20,11 +20,19 @@ assert.equal(rag.evidence_coverage, 1);
 const classes = ['knowledge_search', 'no_tool'];
 const tools = scoreToolCases(
   [
-    { id: 'one', expected_tool: 'knowledge_search', required_arguments: ['query'] },
+    {
+      id: 'one',
+      expected_tool: 'knowledge_search',
+      required_arguments: ['query'],
+    },
     { id: 'two', expected_tool: 'no_tool', required_arguments: [] },
   ],
   [
-    { id: 'one', selected_tool: 'knowledge_search', arguments: { query: 'RAG' } },
+    {
+      id: 'one',
+      selected_tool: 'knowledge_search',
+      arguments: { query: 'RAG' },
+    },
     { id: 'two', selected_tool: 'no_tool', arguments: {} },
   ],
   classes,

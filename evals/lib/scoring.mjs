@@ -3,7 +3,10 @@ export function scoreRagCase(testCase, hits) {
   const firstRelevant = hits.findIndex((hit) => relevant.has(hit.source));
   const recallAt = (k) =>
     hits.slice(0, k).some((hit) => relevant.has(hit.source)) ? 1 : 0;
-  const combinedText = hits.map((hit) => String(hit.text || '')).join('\n').toLowerCase();
+  const combinedText = hits
+    .map((hit) => String(hit.text || ''))
+    .join('\n')
+    .toLowerCase();
   const matchedEvidence = testCase.expected_evidence.filter((evidence) =>
     combinedText.includes(evidence.toLowerCase()),
   );
@@ -19,7 +22,9 @@ export function scoreRagCase(testCase, hits) {
 }
 
 export function scoreToolCases(cases, predictions, classes) {
-  const byId = new Map(predictions.map((prediction) => [prediction.id, prediction]));
+  const byId = new Map(
+    predictions.map((prediction) => [prediction.id, prediction]),
+  );
   const confusion = Object.fromEntries(
     classes.map((expected) => [
       expected,
@@ -41,7 +46,9 @@ export function scoreToolCases(cases, predictions, classes) {
     if (selected !== 'no_tool') {
       emittedCalls += 1;
       const args = prediction.arguments || {};
-      if (testCase.required_arguments.every((name) => args[name] !== undefined)) {
+      if (
+        testCase.required_arguments.every((name) => args[name] !== undefined)
+      ) {
         schemaValidCount += 1;
       }
     }
@@ -51,11 +58,13 @@ export function scoreToolCases(cases, predictions, classes) {
   for (const label of classes) {
     const tp = confusion[label][label];
     const fp = classes.reduce(
-      (sum, expected) => sum + (expected === label ? 0 : confusion[expected][label]),
+      (sum, expected) =>
+        sum + (expected === label ? 0 : confusion[expected][label]),
       0,
     );
     const fn = classes.reduce(
-      (sum, predicted) => sum + (predicted === label ? 0 : confusion[label][predicted]),
+      (sum, predicted) =>
+        sum + (predicted === label ? 0 : confusion[label][predicted]),
       0,
     );
     const precision = tp + fp ? tp / (tp + fp) : 0;
@@ -63,7 +72,10 @@ export function scoreToolCases(cases, predictions, classes) {
     perClass[label] = {
       precision,
       recall,
-      f1: precision + recall ? (2 * precision * recall) / (precision + recall) : 0,
+      f1:
+        precision + recall
+          ? (2 * precision * recall) / (precision + recall)
+          : 0,
     };
   }
   const average = (field) =>

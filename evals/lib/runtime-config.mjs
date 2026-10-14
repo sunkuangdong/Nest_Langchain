@@ -14,13 +14,18 @@ export function sanitizeEndpoint(rawValue, fallback) {
 
 export function inferProvider(baseUrl) {
   const host = new URL(baseUrl).hostname.toLowerCase();
-  if (host === 'api.openai.com' || host.endsWith('.openai.com')) return 'openai';
-  if (host.includes('dashscope') || host.endsWith('aliyuncs.com')) return 'dashscope';
+  if (host === 'api.openai.com' || host.endsWith('.openai.com'))
+    return 'openai';
+  if (host.includes('dashscope') || host.endsWith('aliyuncs.com'))
+    return 'dashscope';
   return 'openai-compatible';
 }
 
 export function fileSha256(filename) {
-  return crypto.createHash('sha256').update(fs.readFileSync(filename)).digest('hex');
+  return crypto
+    .createHash('sha256')
+    .update(fs.readFileSync(filename))
+    .digest('hex');
 }
 
 function gitCommit(root) {

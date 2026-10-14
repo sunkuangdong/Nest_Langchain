@@ -34,7 +34,7 @@ export default tseslint.config(
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-floating-promises': 'warn',
       '@typescript-eslint/no-unsafe-argument': 'warn',
-      "prettier/prettier": ["error", { endOfLine: "auto" }],
+      'prettier/prettier': ['error', { endOfLine: 'auto' }],
     },
   },
   {
@@ -42,6 +42,15 @@ export default tseslint.config(
     rules: {
       // class-validator decorators are often flagged as unsafe-call under strict type-checked
       '@typescript-eslint/no-unsafe-call': 'off',
+    },
+  },
+  {
+    // Evaluation utilities are plain Node.js ESM, not TypeScript project files.
+    // Keep syntax/style linting without asking projectService for TS type data.
+    files: ['evals/**/*.mjs'],
+    extends: [tseslint.configs.disableTypeChecked],
+    languageOptions: {
+      sourceType: 'module',
     },
   },
   {
