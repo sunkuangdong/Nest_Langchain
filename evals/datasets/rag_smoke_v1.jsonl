@@ -1,0 +1,8 @@
+{"id":"rag-smoke-001","query":"What does retrieval augmented generation mean in the LangChain docs?","relevant_sources":["docs/rag-sample/01-langchain-rag.md"],"expected_evidence":["Retrieval Augmented Generation"]}
+{"id":"rag-smoke-002","query":"Which RAG architecture retrieves before every generation step?","relevant_sources":["docs/rag-sample/02-langchain-retrieval.md"],"expected_evidence":["retrieval step is always executed before the generation step"]}
+{"id":"rag-smoke-003","query":"How should I choose an embedding model for multilingual retrieval?","relevant_sources":["docs/rag-sample/03-langchain-embeddings.md"],"expected_evidence":["pick a model trained on your languages"]}
+{"id":"rag-smoke-004","query":"What is the easiest local Milvus option for prototyping?","relevant_sources":["docs/rag-sample/04-langchain-milvus.md"],"expected_evidence":["Milvus Lite"]}
+{"id":"rag-smoke-005","query":"Why offload retrieved chunks to files in a Deep Agent RAG workflow?","relevant_sources":["docs/rag-sample/01-langchain-rag.md"],"expected_evidence":["orchestrator context stays clean"]}
+{"id":"rag-smoke-006","query":"What makes Agentic RAG different from a fixed two-step pipeline?","relevant_sources":["docs/rag-sample/02-langchain-retrieval.md"],"expected_evidence":["An LLM-powered agent"]}
+{"id":"rag-smoke-007","query":"When are dense embeddings weak compared with keyword indexes?","relevant_sources":["docs/rag-sample/03-langchain-embeddings.md"],"expected_evidence":["exact-match queries"]}
+{"id":"rag-smoke-008","query":"How does Milvus combine semantic and keyword retrieval?","relevant_sources":["docs/rag-sample/04-langchain-milvus.md"],"expected_evidence":["dense + sparse hybrid search"]}

@@ -51,12 +51,12 @@ answer quality and postpones voice-latency evaluation.
 
 ## Datasets
 
-Planned datasets are separated into development and benchmark cases:
+The v1 datasets are separated into development and benchmark cases:
 
-| Dataset | Planned Size | Purpose | Included in reported benchmark metrics |
+| Dataset | Size | Purpose | Included in reported benchmark metrics |
 | --- | ---: | --- | --- |
-| `rag_smoke_v1.jsonl` | 6-8 | Validate retrieval scoring and labels | No |
-| `rag_main_v1.jsonl` | 30-40 | Official retrieval benchmark | Yes |
+| `rag_smoke_v1.jsonl` | 8 | Validate retrieval scoring and labels | No |
+| `rag_main_v1.jsonl` | 32 | Official retrieval benchmark | Yes |
 | `tool_smoke_v1.jsonl` | 14 | Two development cases per routing class | No |
 | `tool_main_v1.jsonl` | 70 | Ten benchmark cases per routing class | Yes |
 

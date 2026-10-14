@@ -9,7 +9,7 @@ The protocol is currently **DRAFT**. No RAG or tool-routing number is official
 until the freeze checklist in
 [`EVALUATION_SPEC.md`](./EVALUATION_SPEC.md) is complete.
 
-## Planned Layout
+## Layout
 
 ```text
 evals/
@@ -20,18 +20,35 @@ evals/
 │   ├── rag_main_v1.jsonl
 │   ├── tool_smoke_v1.jsonl
 │   └── tool_main_v1.jsonl
+├── lib/
+│   ├── runtime-config.mjs
+│   └── scoring.mjs
+├── scripts/
+│   ├── capture-config.mjs
+│   ├── test-scoring.mjs
+│   └── validate-datasets.mjs
 └── results/
 ```
 
-## Planned Next Steps
+## Local Validation
 
-1. Review and freeze the v1 corpus and retrieval configuration.
-2. Create 6-8 RAG smoke cases with stable source and evidence labels.
-3. Create 14 balanced tool-routing smoke cases.
-4. Implement deterministic dataset and scoring tests.
-5. Implement side-effect-free routing mocks.
-6. Review main datasets, generate checksums, and freeze protocol v1.
-7. Run the official benchmarks without replacing undesirable results.
+Use Node.js 22, matching the application runtime:
+
+```bash
+nvm use 22
+pnpm eval:validate
+pnpm eval:test
+pnpm eval:config
+```
+
+`eval:validate` verifies dataset sizes, balanced routing classes, smoke/main
+separation, tool argument labels, source paths, and that every RAG evidence
+label exists in the fixed corpus. `eval:config` prints model and retrieval
+configuration plus dataset hashes without printing API keys or credentials.
+
+Live RAG and routing runners remain a later phase. Before those benchmarks,
+the labels must be reviewed and side-effecting tools must be replaced with
+schema-compatible mocks.
 
 Voice latency, generated-answer quality, and LLM-as-Judge are not part of the
 v1 core evaluation.
