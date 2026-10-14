@@ -52,7 +52,8 @@ Copy [`.env.example`](./.env.example) to `.env` and fill in values:
 # --- Required: LLM Configuration ---
 OPENAI_BASE_URL=https://api.openai.com/v1
 OPENAI_API_KEY=your_llm_api_key_here
-MODEL_NAME=gpt-4o-mini
+MODEL_NAME=gpt-6-luna
+MODEL_REASONING_EFFORT=none
 
 # --- Optional: Server Port (Default 3000) ---
 PORT=3000

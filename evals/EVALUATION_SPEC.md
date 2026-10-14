@@ -177,6 +177,7 @@ The tool-routing benchmark uses a dedicated evaluation configuration:
 
 ```yaml
 temperature: 0
+reasoning_effort: none
 concurrency: 1
 max_provider_retries: 2
 ```

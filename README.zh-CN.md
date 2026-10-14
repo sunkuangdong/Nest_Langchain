@@ -52,7 +52,8 @@
 # --- 必填：LLM ---
 OPENAI_BASE_URL=https://api.openai.com/v1
 OPENAI_API_KEY=your_llm_api_key_here
-MODEL_NAME=gpt-4o-mini
+MODEL_NAME=gpt-6-luna
+MODEL_REASONING_EFFORT=none
 
 # --- 可选：服务端口（默认 3000）---
 PORT=3000
