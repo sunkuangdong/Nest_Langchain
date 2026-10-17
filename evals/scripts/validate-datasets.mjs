@@ -66,6 +66,14 @@ function sameKeys(row, expected) {
   );
 }
 
+function hasAllowedKeys(row, required, optional = []) {
+  const keys = Object.keys(row);
+  return (
+    required.every((key) => keys.includes(key)) &&
+    keys.every((key) => required.includes(key) || optional.includes(key))
+  );
+}
+
 function validateRag(dataset, expectedSize) {
   const errors = [];
   const expectedFields = [
@@ -130,7 +138,7 @@ function validateRag(dataset, expectedSize) {
 
 function validateTools(dataset, expectedPerClass) {
   const errors = [];
-  const expectedFields = [
+  const requiredFields = [
     'id',
     'query',
     'expected_tool',
@@ -142,7 +150,9 @@ function validateTools(dataset, expectedPerClass) {
   const ids = new Set();
   for (const [index, row] of dataset.rows.entries()) {
     const at = `${dataset.filename}:${index + 1}`;
-    if (!sameKeys(row, expectedFields)) errors.push(`${at}: unexpected schema`);
+    if (!hasAllowedKeys(row, requiredFields, ['expected_arguments'])) {
+      errors.push(`${at}: unexpected schema`);
+    }
     if (!row.id || ids.has(row.id))
       errors.push(`${at}: missing or duplicate id`);
     ids.add(row.id);
@@ -159,6 +169,26 @@ function validateTools(dataset, expectedPerClass) {
       if (!TOOL_ARGUMENTS[row.expected_tool].has(argument)) {
         errors.push(
           `${at}: invalid required argument ${argument} for ${row.expected_tool}`,
+        );
+      }
+    }
+    if (
+      row.expected_arguments !== undefined &&
+      (row.expected_arguments === null ||
+        typeof row.expected_arguments !== 'object' ||
+        Array.isArray(row.expected_arguments))
+    ) {
+      errors.push(`${at}: expected_arguments must be an object`);
+    }
+    for (const argument of Object.keys(row.expected_arguments || {})) {
+      if (!TOOL_ARGUMENTS[row.expected_tool].has(argument)) {
+        errors.push(
+          `${at}: invalid expected argument ${argument} for ${row.expected_tool}`,
+        );
+      }
+      if (!(row.required_arguments || []).includes(argument)) {
+        errors.push(
+          `${at}: expected argument ${argument} must also be required`,
         );
       }
     }

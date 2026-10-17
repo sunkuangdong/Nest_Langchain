@@ -1,10 +1,10 @@
 # Nest Langchain Evaluation Protocol
 
 - **Status:** DRAFT
-- **Version:** 1.0.0
+- **Version:** 1.1.0
 - **Protocol Owner:** Kuangdong Sun
 - **Dataset Version:** v1
-- **Last Updated:** 2026-10-14
+- **Last Updated:** 2026-10-16
 
 ## Objective
 
@@ -48,17 +48,18 @@ answer quality and postpones voice-latency evaluation.
 - ASR accuracy
 - Time to first token, time to first audio, and end-to-end voice latency
 - Model fine-tuning
+- Underspecified requests that require a clarification turn
 
 ## Datasets
 
 The v1 datasets are separated into development and benchmark cases:
 
-| Dataset | Size | Purpose | Included in reported benchmark metrics |
-| --- | ---: | --- | --- |
-| `rag_smoke_v1.jsonl` | 8 | Validate retrieval scoring and labels | No |
-| `rag_main_v1.jsonl` | 32 | Official retrieval benchmark | Yes |
-| `tool_smoke_v1.jsonl` | 14 | Two development cases per routing class | No |
-| `tool_main_v1.jsonl` | 70 | Ten benchmark cases per routing class | Yes |
+| Dataset               | Size | Purpose                                 | Included in reported benchmark metrics |
+| --------------------- | ---: | --------------------------------------- | -------------------------------------- |
+| `rag_smoke_v1.jsonl`  |    8 | Validate retrieval scoring and labels   | No                                     |
+| `rag_main_v1.jsonl`   |   32 | Official retrieval benchmark            | Yes                                    |
+| `tool_smoke_v1.jsonl` |   14 | Two development cases per routing class | No                                     |
+| `tool_main_v1.jsonl`  |   70 | Ten benchmark cases per routing class   | Yes                                    |
 
 Smoke cases may be used to fix code and scoring. Once a main benchmark begins,
 its cases cannot be used to tune the system and then rerun under the same
@@ -70,13 +71,8 @@ benchmark version.
 {
   "id": "rag-001",
   "query": "What is the role of embeddings in RAG?",
-  "relevant_sources": [
-    "docs/rag-sample/03-langchain-embeddings.md"
-  ],
-  "expected_evidence": [
-    "vector representation",
-    "semantic similarity"
-  ]
+  "relevant_sources": ["docs/rag-sample/03-langchain-embeddings.md"],
+  "expected_evidence": ["vector representation", "semantic similarity"]
 }
 ```
 
@@ -128,9 +124,17 @@ The benchmark contains ten cases for each class:
 6. `cron_job`
 7. `no_tool`
 
-Each class should include clear, ambiguous, incomplete-argument, and
-confusable-intent cases. Paraphrases must not be used merely to inflate the
-dataset size.
+The v1 routing benchmark is limited to single-turn requests that provide enough
+information to make one deterministic routing decision. Each class includes
+clear cases and confusable-but-answerable cases, including local-versus-web
+retrieval, demo-versus-persisted users, draft-versus-send email, and
+explain-versus-create scheduled jobs. Paraphrases must not be used merely to
+inflate the dataset size.
+
+Truly underspecified requests are excluded from v1 because the current seven
+classes cannot distinguish an appropriate clarification from an incorrect
+`no_tool` decision. A future clarification benchmark must introduce an explicit
+`clarify` expectation instead of forcing those cases into an existing class.
 
 ## Tool Case Schema
 
@@ -140,10 +144,16 @@ dataset size.
   "query": "Search the local documentation for Milvus indexing.",
   "expected_tool": "knowledge_search",
   "required_arguments": ["query"],
+  "expected_arguments": {},
   "forbidden_tools": ["web_search"],
   "side_effect": false
 }
 ```
+
+`expected_arguments` is optional. It records only deterministic values stated
+by, or unambiguously derived from, the request (for example `count: 5`, a user
+ID, CRUD action, recipient address, or schedule interval). Free-form search
+queries and natural-language task instructions are not compared verbatim.
 
 ## Mock and Safety Policy
 
@@ -155,6 +165,9 @@ dataset size.
 - User lookup, web search, and knowledge search return deterministic fixture
   results when only routing behavior is under evaluation.
 - Mocks preserve production tool names and argument schemas.
+- The routing runner records the model's first decision and stops before tool
+  execution; Mock function bodies are therefore a second safety boundary rather
+  than part of the evaluated behavior.
 
 ## Tool-Routing Metrics
 
@@ -163,6 +176,11 @@ dataset size.
 - **Macro Precision, Recall, and F1:** unweighted mean across all seven classes
 - **Schema Validity:** emitted tool calls that pass the expected Zod schema / all
   emitted tool calls
+- **Exact Argument Match:** cases whose labeled deterministic arguments all
+  match / cases that contain `expected_arguments`
+- **Routing Task Success:** cases with the exact routing decision, required and
+  expected arguments, schema-valid arguments, and no forbidden tool call / all
+  valid cases
 - **No-Tool Precision and Recall:** reported separately
 - **Per-Class Accuracy:** reported for each tool and `no_tool`
 - **Confusion Matrix:** expected class versus selected class
@@ -213,6 +231,9 @@ Each result set records the protocol version, dataset version and checksum,
 Git commit, provider, model, runtime configuration, and run date. Summary files
 must be reproducible from raw case results.
 
+The fixed routing prompt is stored at
+`evals/prompts/tool-routing-v1.txt`; its SHA-256 hash is captured in every run.
+
 ## Limitations
 
 - Source-level retrieval relevance does not establish that a generated answer
@@ -221,6 +242,10 @@ must be reproducible from raw case results.
   equivalent wording.
 - Seventy routing cases provide portfolio-scale evidence but do not constitute
   a production traffic distribution or service-level guarantee.
+- Two `query_user` cases intentionally request absent demo IDs to verify routing
+  independently from lookup success; entity existence is not scored in v1.
+- Clarification behavior for missing arguments requires a separate protocol and
+  is not measured by v1.
 - Hosted models and embedding services may change behavior without a local code
   change.
 - Voice latency and speech quality are intentionally excluded from v1.
@@ -250,4 +275,3 @@ The status may change from `DRAFT` to `FROZEN` only when:
 - [ ] Scoring rules pass manually verifiable fixture cases.
 - [ ] Dataset SHA-256 checksums are generated.
 - [ ] The protocol and datasets are committed and tagged.
-
