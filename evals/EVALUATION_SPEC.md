@@ -1,7 +1,7 @@
 # Nest Langchain Evaluation Protocol
 
 - **Status:** DRAFT
-- **Version:** 1.1.0
+- **Version:** 1.2.0
 - **Protocol Owner:** Kuangdong Sun
 - **Dataset Version:** v1
 - **Last Updated:** 2026-10-16
@@ -78,6 +78,10 @@ benchmark version.
 
 Source paths and evidence text are stable ground truth. `chunk_index` is not a
 permanent label because indexes change when chunking configuration changes.
+A source is labeled relevant only when it can independently support the core
+answer. Merely mentioning the topic or linking to another document is not
+enough. When multiple corpus documents independently answer the question, all
+of them are included in `relevant_sources`.
 
 ## RAG Runtime Configuration
 
@@ -95,6 +99,11 @@ concurrency: 1
 The embedding provider, exact embedding model, base URL without credentials,
 document commit, vector dimensions, and Milvus version must be captured before
 the protocol is frozen.
+
+The evaluation indexer rejects non-evaluation collection names and refuses to
+append to an existing collection. A rebuild requires an explicit `--recreate`
+option. Its local state record binds the collection to corpus, chunk, embedding,
+and metric metadata; the runner refuses live evaluation when they differ.
 
 Changing chunk size, overlap, embedding model, metric, corpus, or reranking
 creates a separate benchmark or ablation version. It must not overwrite v1.

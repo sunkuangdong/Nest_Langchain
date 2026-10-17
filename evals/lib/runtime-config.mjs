@@ -52,7 +52,7 @@ export function captureRuntimeConfig(root, datasetPaths = []) {
       ? 'text-embedding-v3'
       : 'text-embedding-3-small');
   return {
-    protocol_version: '1.1.0-draft',
+    protocol_version: '1.2.0-draft',
     dataset_version: 'v1',
     git_commit: gitCommit(root),
     provider: inferProvider(modelBaseUrl),

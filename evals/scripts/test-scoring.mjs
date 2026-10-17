@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict';
 import { sanitizeEndpoint } from '../lib/runtime-config.mjs';
 import {
+  assertEvaluationCollection,
+  buildCorpusSnapshot,
+  chunkText,
+  getRagEvaluationConfig,
+  validateIndexState,
+} from '../lib/rag-runtime.mjs';
+import {
   scoreRagCase,
   scoreToolCases,
   validateToolArguments,
@@ -158,4 +165,34 @@ const endpoint = sanitizeEndpoint(
 );
 assert.equal(endpoint, 'https://example.com:8443/v1');
 assert.equal(endpoint.includes('secret'), false);
+
+assert.deepEqual(chunkText('abcdefghij', 6, 2), ['abcdef', 'efghij']);
+assert.doesNotThrow(() => assertEvaluationCollection('rag_docs_eval_v1'));
+assert.throws(
+  () => assertEvaluationCollection('rag_docs'),
+  /non-evaluation collection/,
+);
+
+const root = new URL('../..', import.meta.url).pathname.replace(/\/$/, '');
+const ragConfig = getRagEvaluationConfig(root);
+const snapshot = buildCorpusSnapshot(root, ragConfig);
+assert.equal(snapshot.manifest.length, 4);
+assert.equal(snapshot.chunks.length > 0, true);
+assert.deepEqual(
+  validateIndexState(
+    {
+      collection: ragConfig.collection,
+      corpus_sha256: snapshot.corpus_sha256,
+      chunks_sha256: snapshot.chunks_sha256,
+      chunk_size: ragConfig.chunk_size,
+      chunk_overlap: ragConfig.chunk_overlap,
+      embedding_model: ragConfig.embedding_model,
+      metric: ragConfig.metric,
+      chunk_count: snapshot.chunks.length,
+    },
+    snapshot,
+    ragConfig,
+  ),
+  [],
+);
 console.log('Scoring fixtures passed.');

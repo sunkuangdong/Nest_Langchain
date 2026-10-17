@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  thrift@0.23.0>uuid: 11.1.1
+
 importers:
 
   .:
@@ -5501,8 +5504,8 @@ packages:
     engines: {node: '>=22.0.0'}
     hasBin: true
 
-  uuid@13.0.2:
-    resolution: {integrity: sha512-vzi9uRZ926x4XV73S/4qQaTwPXM2JBj6/6lI/byHH1jOpCzb0zDbfytgA9LcN/hzb2l7WQSQnxITOVx5un/wGw==}
+  uuid@11.1.1:
+    resolution: {integrity: sha512-vIYxrBCC/N/K+Js3qSN88go7kIfNPssr/hHCesKCQNAjmgvYS2oqr69kIufEG+O4+PfezOH4EbIeHCfFov8ZgQ==}
     hasBin: true
 
   uuid@14.0.0:
@@ -12242,7 +12245,7 @@ snapshots:
       isomorphic-ws: 4.0.1(ws@5.2.7)
       node-int64: 0.4.0
       q: 1.5.1
-      uuid: 13.0.2
+      uuid: 11.1.1
       ws: 5.2.7
     transitivePeerDependencies:
       - bufferutil
@@ -12513,7 +12516,7 @@ snapshots:
     optionalDependencies:
       '@xterm/xterm': 5.5.0
 
-  uuid@13.0.2: {}
+  uuid@11.1.1: {}
 
   uuid@14.0.0: {}
 

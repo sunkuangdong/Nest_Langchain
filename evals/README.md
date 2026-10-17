@@ -14,6 +14,7 @@ until the freeze checklist in
 ```text
 evals/
 ├── EVALUATION_SPEC.md
+├── RAG_LABEL_AUDIT.md
 ├── README.md
 ├── datasets/
 │   ├── rag_smoke_v1.jsonl
@@ -27,6 +28,8 @@ evals/
 │   └── tool-routing-v1.txt
 ├── scripts/
 │   ├── capture-config.mjs
+│   ├── ingest-rag-eval.mjs
+│   ├── run-rag-retrieval.mjs
 │   ├── run-tool-routing.mjs
 │   ├── test-scoring.mjs
 │   └── validate-datasets.mjs
@@ -79,9 +82,46 @@ directories under `evals/results/` contain `config.json`, `raw_cases.jsonl`,
 `summary.json`, `confusion_matrix.json`, and `report.md`; they are ignored by
 Git by default.
 
-The live RAG runner remains a later phase. Main routing results are not official
-until the labels, fixed prompt, and Smoke output have been reviewed and the
-protocol has been frozen.
+## RAG Retrieval Runner
+
+The RAG benchmark uses the fixed `docs/rag-sample` corpus and a dedicated
+Milvus collection. Evaluation scripts reject collection names that do not
+start with `rag_docs_eval_`, so they cannot overwrite the production
+`rag_docs` collection. Index metadata and corpus hashes are written to the
+Git-ignored `evals/state/` directory.
+
+Validate the corpus and resolved indexing configuration without calling the
+embedding provider or Milvus:
+
+```bash
+pnpm eval:rag:ingest -- --dry-run
+```
+
+Create the evaluation index. If the collection already exists and must be
+rebuilt, add the explicit `--recreate` option; the default command refuses to
+append duplicate vectors:
+
+```bash
+pnpm eval:rag:ingest
+pnpm eval:rag:ingest -- --recreate
+```
+
+Check whether the local corpus, configuration, and saved index state still
+match, then run the eight-case Smoke dataset:
+
+```bash
+pnpm eval:rag:smoke -- --dry-run
+pnpm eval:rag:smoke
+```
+
+The runner records source-level Recall@1/3/5, MRR, mean and full expected-
+evidence coverage, embedding-through-search P50/P95 latency, query embedding
+token usage, and per-case Top-K hits. Infrastructure failures are reported but
+excluded from retrieval-quality aggregates.
+
+Main RAG and routing results are not official until the labels, fixed corpus,
+Smoke outputs, and runtime configuration have been reviewed and the protocol
+has been frozen.
 
 Voice latency, generated-answer quality, and LLM-as-Judge are not part of the
 v1 core evaluation.

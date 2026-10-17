@@ -1,4 +1,4 @@
-{"id":"rag-smoke-001","query":"What does retrieval augmented generation mean in the LangChain docs?","relevant_sources":["docs/rag-sample/01-langchain-rag.md"],"expected_evidence":["Retrieval Augmented Generation"]}
+{"id":"rag-smoke-001","query":"What does retrieval augmented generation mean in the LangChain docs?","relevant_sources":["docs/rag-sample/01-langchain-rag.md","docs/rag-sample/02-langchain-retrieval.md"],"expected_evidence":["Retrieval Augmented Generation"]}
 {"id":"rag-smoke-002","query":"Which RAG architecture retrieves before every generation step?","relevant_sources":["docs/rag-sample/02-langchain-retrieval.md"],"expected_evidence":["retrieval step is always executed before the generation step"]}
 {"id":"rag-smoke-003","query":"How should I choose an embedding model for multilingual retrieval?","relevant_sources":["docs/rag-sample/03-langchain-embeddings.md"],"expected_evidence":["pick a model trained on your languages"]}
 {"id":"rag-smoke-004","query":"What is the easiest local Milvus option for prototyping?","relevant_sources":["docs/rag-sample/04-langchain-milvus.md"],"expected_evidence":["Milvus Lite"]}

@@ -64,3 +64,7 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 # generated evaluation runs (publish selected summaries separately)
 /evals/results/*
 !/evals/results/.gitkeep
+
+# generated RAG evaluation index state
+/evals/state/*
+!/evals/state/.gitkeep
