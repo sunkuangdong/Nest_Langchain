@@ -126,6 +126,24 @@ protocol, pass configuration and dataset-hash validation, and retain their raw
 case results. Smoke results remain development evidence and are not included in
 reported Main benchmark metrics.
 
+## Publishing Frozen Main Results
+
+The publisher accepts one frozen RAG Main run and one frozen Tool Main run. It
+rejects draft protocol versions, non-tagged commits, unexpected dataset hashes,
+partial datasets, changed model/retrieval settings, and tool runs that enabled
+side effects. Published case files omit retrieved text, assistant text, and tool
+arguments while retaining the measurements needed to audit aggregate metrics.
+
+```bash
+pnpm eval:publish -- \
+  --rag-dir evals/results/<rag-main-run> \
+  --tool-dir evals/results/<tool-main-run> \
+  --output-dir evals/published/main_v1
+```
+
+The tracked report is written to `evals/published/main_v1/report.md` together
+with its aggregate summary and sanitized per-case evidence.
+
 Voice latency, generated-answer quality, and LLM-as-Judge are not part of the
 v1 core evaluation.
 

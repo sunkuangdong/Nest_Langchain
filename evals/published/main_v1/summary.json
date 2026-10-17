@@ -1,0 +1,316 @@
+{
+  "protocol_version": "1.2.0",
+  "freeze_tag": "eval-protocol-v1.2.0",
+  "freeze_commit": "ad4b6a213f2a32cab82cf96c3e18e66bc92a5dd4",
+  "combined": {
+    "run_count": 102,
+    "evaluated_count": 102,
+    "infrastructure_failure_count": 0
+  },
+  "rag": {
+    "dataset": {
+      "path": "evals/datasets/rag_main_v1.jsonl",
+      "sha256": "95795f23ab275ae31e3da4d0826475d0561d3ef9daf9164c548bb9bfe1b929e3",
+      "selected_case_count": 32,
+      "selected_case_ids": [
+        "rag-main-001",
+        "rag-main-002",
+        "rag-main-003",
+        "rag-main-004",
+        "rag-main-005",
+        "rag-main-006",
+        "rag-main-007",
+        "rag-main-008",
+        "rag-main-009",
+        "rag-main-010",
+        "rag-main-011",
+        "rag-main-012",
+        "rag-main-013",
+        "rag-main-014",
+        "rag-main-015",
+        "rag-main-016",
+        "rag-main-017",
+        "rag-main-018",
+        "rag-main-019",
+        "rag-main-020",
+        "rag-main-021",
+        "rag-main-022",
+        "rag-main-023",
+        "rag-main-024",
+        "rag-main-025",
+        "rag-main-026",
+        "rag-main-027",
+        "rag-main-028",
+        "rag-main-029",
+        "rag-main-030",
+        "rag-main-031",
+        "rag-main-032"
+      ]
+    },
+    "retrieval": {
+      "collection": "rag_docs_eval_v1",
+      "chunk_size": 800,
+      "chunk_overlap": 120,
+      "top_k": 5,
+      "metric": "COSINE",
+      "embedding_model": "text-embedding-3-small",
+      "concurrency": 1
+    },
+    "evaluated_count": 32,
+    "infrastructure_failure_count": 0,
+    "score": {
+      "recall_at_1": 0.90625,
+      "recall_at_3": 1,
+      "recall_at_5": 1,
+      "mrr": 0.9375,
+      "mean_evidence_coverage": 0.8177083333333334,
+      "full_evidence_coverage_rate": 0.78125
+    },
+    "latency_ms": {
+      "sample_count": 32,
+      "p50": 200,
+      "p95_nearest_rank": 1159
+    },
+    "usage": {
+      "prompt_tokens": 394,
+      "total_tokens": 394
+    }
+  },
+  "tool_routing": {
+    "dataset": {
+      "path": "evals/datasets/tool_main_v1.jsonl",
+      "sha256": "6a837db5cbcde1c46a0e4439e9e945ed8e1fce68a791735e0b356efe35421ef8",
+      "selected_case_count": 70,
+      "selected_case_ids": [
+        "tool-main-001",
+        "tool-main-002",
+        "tool-main-003",
+        "tool-main-004",
+        "tool-main-005",
+        "tool-main-006",
+        "tool-main-007",
+        "tool-main-008",
+        "tool-main-009",
+        "tool-main-010",
+        "tool-main-011",
+        "tool-main-012",
+        "tool-main-013",
+        "tool-main-014",
+        "tool-main-015",
+        "tool-main-016",
+        "tool-main-017",
+        "tool-main-018",
+        "tool-main-019",
+        "tool-main-020",
+        "tool-main-021",
+        "tool-main-022",
+        "tool-main-023",
+        "tool-main-024",
+        "tool-main-025",
+        "tool-main-026",
+        "tool-main-027",
+        "tool-main-028",
+        "tool-main-029",
+        "tool-main-030",
+        "tool-main-031",
+        "tool-main-032",
+        "tool-main-033",
+        "tool-main-034",
+        "tool-main-035",
+        "tool-main-036",
+        "tool-main-037",
+        "tool-main-038",
+        "tool-main-039",
+        "tool-main-040",
+        "tool-main-041",
+        "tool-main-042",
+        "tool-main-043",
+        "tool-main-044",
+        "tool-main-045",
+        "tool-main-046",
+        "tool-main-047",
+        "tool-main-048",
+        "tool-main-049",
+        "tool-main-050",
+        "tool-main-051",
+        "tool-main-052",
+        "tool-main-053",
+        "tool-main-054",
+        "tool-main-055",
+        "tool-main-056",
+        "tool-main-057",
+        "tool-main-058",
+        "tool-main-059",
+        "tool-main-060",
+        "tool-main-061",
+        "tool-main-062",
+        "tool-main-063",
+        "tool-main-064",
+        "tool-main-065",
+        "tool-main-066",
+        "tool-main-067",
+        "tool-main-068",
+        "tool-main-069",
+        "tool-main-070"
+      ]
+    },
+    "model": {
+      "provider": "openai",
+      "name": "gpt-6-luna",
+      "temperature": 0,
+      "reasoning_effort": "none"
+    },
+    "prompt": {
+      "path": "evals/prompts/tool-routing-v1.txt",
+      "sha256": "76302972855271185b2e55615249ac1dae9a37dc1303635e59117df352513767"
+    },
+    "side_effects_executed": false,
+    "evaluated_count": 70,
+    "infrastructure_failure_count": 0,
+    "score": {
+      "selection_accuracy": 0.9857142857142858,
+      "routing_task_success": 0.9714285714285714,
+      "macro_precision": 0.987012987012987,
+      "macro_recall": 0.9857142857142858,
+      "macro_f1": 0.9856784819190835,
+      "schema_validity": 1,
+      "exact_argument_match": 0.9767441860465116,
+      "exact_argument_labeled_cases": 43,
+      "multiple_tool_call_count": 0,
+      "forbidden_tool_violation_count": 1,
+      "per_class": {
+        "knowledge_search": {
+          "precision": 0.9090909090909091,
+          "recall": 1,
+          "f1": 0.9523809523809523
+        },
+        "web_search": {
+          "precision": 1,
+          "recall": 0.9,
+          "f1": 0.9473684210526316
+        },
+        "send_mail": {
+          "precision": 1,
+          "recall": 1,
+          "f1": 1
+        },
+        "query_user": {
+          "precision": 1,
+          "recall": 1,
+          "f1": 1
+        },
+        "db_users_crud": {
+          "precision": 1,
+          "recall": 1,
+          "f1": 1
+        },
+        "cron_job": {
+          "precision": 1,
+          "recall": 1,
+          "f1": 1
+        },
+        "no_tool": {
+          "precision": 1,
+          "recall": 1,
+          "f1": 1
+        }
+      },
+      "confusion_matrix": {
+        "knowledge_search": {
+          "knowledge_search": 10,
+          "web_search": 0,
+          "send_mail": 0,
+          "query_user": 0,
+          "db_users_crud": 0,
+          "cron_job": 0,
+          "no_tool": 0,
+          "invalid_tool": 0
+        },
+        "web_search": {
+          "knowledge_search": 1,
+          "web_search": 9,
+          "send_mail": 0,
+          "query_user": 0,
+          "db_users_crud": 0,
+          "cron_job": 0,
+          "no_tool": 0,
+          "invalid_tool": 0
+        },
+        "send_mail": {
+          "knowledge_search": 0,
+          "web_search": 0,
+          "send_mail": 10,
+          "query_user": 0,
+          "db_users_crud": 0,
+          "cron_job": 0,
+          "no_tool": 0,
+          "invalid_tool": 0
+        },
+        "query_user": {
+          "knowledge_search": 0,
+          "web_search": 0,
+          "send_mail": 0,
+          "query_user": 10,
+          "db_users_crud": 0,
+          "cron_job": 0,
+          "no_tool": 0,
+          "invalid_tool": 0
+        },
+        "db_users_crud": {
+          "knowledge_search": 0,
+          "web_search": 0,
+          "send_mail": 0,
+          "query_user": 0,
+          "db_users_crud": 10,
+          "cron_job": 0,
+          "no_tool": 0,
+          "invalid_tool": 0
+        },
+        "cron_job": {
+          "knowledge_search": 0,
+          "web_search": 0,
+          "send_mail": 0,
+          "query_user": 0,
+          "db_users_crud": 0,
+          "cron_job": 10,
+          "no_tool": 0,
+          "invalid_tool": 0
+        },
+        "no_tool": {
+          "knowledge_search": 0,
+          "web_search": 0,
+          "send_mail": 0,
+          "query_user": 0,
+          "db_users_crud": 0,
+          "cron_job": 0,
+          "no_tool": 10,
+          "invalid_tool": 0
+        }
+      }
+    },
+    "latency_ms": {
+      "sample_count": 70,
+      "p50": 1208,
+      "p95_nearest_rank": 1849
+    },
+    "usage": {
+      "input_tokens": 69675,
+      "output_tokens": 1975,
+      "total_tokens": 71650
+    }
+  },
+  "source_artifacts": {
+    "rag": {
+      "directory": "evals/results/20261017T193745Z_text-embedding-3-small_rag_main_v1",
+      "config_sha256": "a4aabf431ba034095ccae12191bc6098bb74a3185d0490623eaeb6bf8c5326ea",
+      "summary_sha256": "d349889098e7dd69fa92c8dff1a8b6d0be8294f500d185b4bf2ebd4a58388eba",
+      "raw_cases_sha256": "6de521bf9c4ac373525b01eccaedab1b7e50d45318913d70086758afb461220e"
+    },
+    "tool": {
+      "directory": "evals/results/20261017T194344Z_gpt-6-luna_tool_main_v1",
+      "config_sha256": "e776ce0396b16bf695b58f573545f99bee072ec246b7d3717c4679bbd48f2788",
+      "summary_sha256": "b0128be506861d19754640d8eb82507b09fe8353ce309cbee8f1372e9b6b910c",
+      "raw_cases_sha256": "924bcc3ec853c251434df50643f76840384f48444d0c4dff63108dbd45681494"
+    }
+  }
+}

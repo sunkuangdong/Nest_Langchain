@@ -26,6 +26,7 @@
     "eval:rag:smoke": "node evals/scripts/run-rag-retrieval.mjs --dataset evals/datasets/rag_smoke_v1.jsonl",
     "eval:tool": "node evals/scripts/run-tool-routing.mjs",
     "eval:tool:smoke": "node evals/scripts/run-tool-routing.mjs --dataset evals/datasets/tool_smoke_v1.jsonl",
+    "eval:publish": "node evals/scripts/publish-main-results.mjs",
     "eval:lint": "eslint \"evals/**/*.mjs\"",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
