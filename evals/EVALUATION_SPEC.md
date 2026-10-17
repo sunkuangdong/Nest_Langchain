@@ -1,10 +1,12 @@
 # Nest Langchain Evaluation Protocol
 
-- **Status:** DRAFT
+- **Status:** FROZEN
 - **Version:** 1.2.0
 - **Protocol Owner:** Kuangdong Sun
 - **Dataset Version:** v1
-- **Last Updated:** 2026-10-16
+- **Frozen At:** 2026-10-17
+- **Freeze Tag:** `eval-protocol-v1.2.0`
+- **Last Updated:** 2026-10-17
 
 ## Objective
 
@@ -65,6 +67,15 @@ Smoke cases may be used to fix code and scoring. Once a main benchmark begins,
 its cases cannot be used to tune the system and then rerun under the same
 benchmark version.
 
+The frozen dataset checksums are:
+
+| Dataset | SHA-256 |
+| --- | --- |
+| `rag_smoke_v1.jsonl` | `c2ae5a8e48648e7f03906603629c80814819c35738c3780f70ef940c8fe9a9f5` |
+| `rag_main_v1.jsonl` | `95795f23ab275ae31e3da4d0826475d0561d3ef9daf9164c548bb9bfe1b929e3` |
+| `tool_smoke_v1.jsonl` | `0e73b61523c484a65e632fd6f119b85b9ca986d0ad75273f8022b27f4284a497` |
+| `tool_main_v1.jsonl` | `6a837db5cbcde1c46a0e4439e9e945ed8e1fce68a791735e0b356efe35421ef8` |
+
 ## RAG Case Schema
 
 ```json
@@ -89,16 +100,25 @@ The v1 benchmark freezes the following retrieval configuration:
 
 ```yaml
 collection: rag_docs_eval_v1
+corpus: docs/rag-sample/*.md
+corpus_sha256: d6e39e28e84acbfb7689fd714ca8cd52b070bd26201d90285c650e97edb7d06f
+chunks_sha256: d731492abaedba5cf352a96d1dbce1d0c4ef046879a9104c3f09b2664c229f05
+chunk_count: 230
 chunk_size: 800
 chunk_overlap: 120
 top_k: 5
 metric: COSINE
+index_type: AUTOINDEX
+embedding_provider: openai
+embedding_model: text-embedding-3-small
+embedding_dimensions: 1536
+milvus_version: 3.0.2
 concurrency: 1
 ```
 
-The embedding provider, exact embedding model, base URL without credentials,
-document commit, vector dimensions, and Milvus version must be captured before
-the protocol is frozen.
+The corpus manifest and per-file checksums are recorded in the evaluation index
+state. The freeze tag identifies the exact document commit. Credentials and
+machine-specific Milvus addresses are intentionally excluded from the protocol.
 
 The evaluation indexer rejects non-evaluation collection names and refuses to
 append to an existing collection. A rebuild requires an explicit `--recreate`
@@ -203,15 +223,20 @@ Selecting multiple tools when the case expects one is also incorrect.
 The tool-routing benchmark uses a dedicated evaluation configuration:
 
 ```yaml
+provider: openai
+model: gpt-6-luna
+base_url: https://api.openai.com/v1
 temperature: 0
 reasoning_effort: none
 concurrency: 1
+timeout_seconds: 120
 max_provider_retries: 2
+max_tool_call_steps: 4
 ```
 
-Provider, exact model name, base URL without credentials, timeout, and maximum
-tool-call steps must be recorded before the protocol is frozen. The benchmark
-must not silently inherit a different development temperature.
+These values are captured in every run. The benchmark must not silently inherit
+a different development temperature, model, provider endpoint, timeout, retry
+count, or maximum tool-call step count.
 
 ## Retry and Failure Policy
 
@@ -273,14 +298,14 @@ The fixed routing prompt is stored at
 
 ## Freeze Checklist
 
-The status may change from `DRAFT` to `FROZEN` only when:
+Protocol v1.2.0 was frozen after all of the following conditions were met:
 
-- [ ] RAG and tool-routing smoke datasets have been reviewed.
-- [ ] Main datasets and labels have been reviewed.
-- [ ] Development and main cases are disjoint.
-- [ ] The evaluation corpus and collection are fixed.
-- [ ] Provider, model, embedding model, timeout, and retry values are recorded.
-- [ ] All side-effecting tools are replaced with verified mocks.
-- [ ] Scoring rules pass manually verifiable fixture cases.
-- [ ] Dataset SHA-256 checksums are generated.
-- [ ] The protocol and datasets are committed and tagged.
+- [x] RAG and tool-routing smoke datasets have been reviewed.
+- [x] Main datasets and labels have been reviewed.
+- [x] Development and main cases are disjoint.
+- [x] The evaluation corpus and collection are fixed.
+- [x] Provider, model, embedding model, timeout, and retry values are recorded.
+- [x] All side-effecting tools are replaced with verified mocks.
+- [x] Scoring rules pass manually verifiable fixture cases.
+- [x] Dataset SHA-256 checksums are generated.
+- [x] The protocol and datasets are committed and tagged.

@@ -1,7 +1,7 @@
 # RAG Label Audit
 
 - Audit date: 2026-10-16
-- Protocol: 1.2.0-draft
+- Protocol: 1.2.0
 - Corpus: four Markdown files under `docs/rag-sample`
 - Datasets reviewed: 8 Smoke cases and 32 Main cases
 

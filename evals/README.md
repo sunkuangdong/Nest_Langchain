@@ -5,9 +5,11 @@ result artifacts for the Nest Langchain Agent system.
 
 ## Current Status
 
-The protocol is currently **DRAFT**. No RAG or tool-routing number is official
-until the freeze checklist in
-[`EVALUATION_SPEC.md`](./EVALUATION_SPEC.md) is complete.
+Evaluation protocol v1.2.0 is **FROZEN** at Git tag
+`eval-protocol-v1.2.0`. Official v1 benchmark runs must use that tag and the
+checksums recorded in [`EVALUATION_SPEC.md`](./EVALUATION_SPEC.md). Any change
+to a frozen dataset, label, prompt, scoring rule, model, corpus, or retrieval
+configuration must follow the protocol's change policy and use a new version.
 
 ## Layout
 
@@ -119,9 +121,10 @@ evidence coverage, embedding-through-search P50/P95 latency, query embedding
 token usage, and per-case Top-K hits. Infrastructure failures are reported but
 excluded from retrieval-quality aggregates.
 
-Main RAG and routing results are not official until the labels, fixed corpus,
-Smoke outputs, and runtime configuration have been reviewed and the protocol
-has been frozen.
+Main RAG and routing results are official only when they use the frozen
+protocol, pass configuration and dataset-hash validation, and retain their raw
+case results. Smoke results remain development evidence and are not included in
+reported Main benchmark metrics.
 
 Voice latency, generated-answer quality, and LLM-as-Judge are not part of the
 v1 core evaluation.
